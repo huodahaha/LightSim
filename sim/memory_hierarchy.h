@@ -10,7 +10,6 @@ using namespace std;
 class CacheBlockBase;
 class CacheBlockFactoryInterace;
 class CacheSet;
-class PolicyComponent;
 class CRPolicyInterface;
 class MemoryInterface;
 class CacheUnit;
@@ -60,32 +59,13 @@ class CacheBlockBase {
 };
 
 /*
- * Cache replacement policy component checker
- * component should be organized by group
- */
-class PolicyComponent {
- private:
-  u32         _policy_id;
-  PolicyComponent() {};                       // forbid default constructor
-  PolicyComponent(const PolicyComponent &) {};   // forbid copy constructor
-
- public:
-  PolicyComponent(u32 policy_id) : _policy_id(policy_id) {}
-  inline u32 get_policy_id() {
-    return _policy_id;
-  }
-  virtual bool check_compatible(PolicyComponent* other);
-};
-
-/*
  * responsible for creating new cache blocks
  * should be pair with cache replacement policy
  * factory class should be a singleton for each cache replacement policy
  */
-class CacheBlockFactoryInterace : public PolicyComponent {
+class CacheBlockFactoryInterace{
  public:
-  CacheBlockFactoryInterace(u32 policy_id) : PolicyComponent(policy_id) {};
-  virtual CacheBlockFactoryInterace *get_instance() = 0;
+  CacheBlockFactoryInterace() {};
   virtual CacheBlockBase* create(u64 addr, u64 tag, CacheSet *parent_set, u64 PC) = 0;
 };
 
@@ -93,15 +73,14 @@ class CacheBlockFactoryInterace : public PolicyComponent {
  * Cache replacement policy
  * policy class should be a singleton for each cache replacement policy
  */
-class CRPolicyInterface : public PolicyComponent{
+class CRPolicyInterface {
  protected:
   CacheBlockFactoryInterace *_factory;
 
  public:
-  CRPolicyInterface(u32 policy_id, CacheBlockFactoryInterace *factory) : PolicyComponent(policy_id), _factory(factory) {};
-  virtual CRPolicyInterface* get_instance() = 0;
+  CRPolicyInterface(CacheBlockFactoryInterace *factory): _factory(factory) {};
   virtual void on_hit(CacheSet *line, u32 pos, u64 addr, u64 PC) = 0;
-  virtual void on_miss(CacheSet *line, u64 addr, u64 tag, u64 PC) = 0;
+  virtual void on_arrive(CacheSet *line, u64 addr, u64 tag, u64 PC) = 0;
 };
 
 /**
@@ -162,12 +141,19 @@ class MemoryInterface {
 
 class CacheUnit: public MemoryInterface {
  private:
+  u32                             _ways;
   u32                             _blk_size;
   u64                             _sets;
   vector<CacheSet*>               _cache_sets;
   CRPolicyInterface *             _cr_policy;
 
+  CacheUnit() {};
+  CacheUnit(const CacheUnit &) {};
+
  public:
+  CacheUnit(u32 ways, u32 blk_size, u64 sets, CRPolicyInterface * policy);
+  ~CacheUnit ();
+
   inline u64 get_sets() {
     return _sets;
   }
@@ -196,16 +182,17 @@ class MainMemory: public MemoryInterface {
 };
 
 // one per core
+// todo
 class MemoryHierarchy {
   private:
    MemoryInterface* _entry;
 
   public:
 
-
 };
 
 // should be a singleton
+// todo
 class MemoryManager {
  private:
   int _cores;

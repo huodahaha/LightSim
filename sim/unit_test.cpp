@@ -21,6 +21,13 @@ void test_valid_addr() {
   assert(len_of_binary(19) == 5);
 }
 
+void test_logger() {
+  SIMLOG(SIM_INFO, "testmessage + %s\n", "msg");
+  SIMLOG(SIM_WARNING, "testmessage + %s\n", "msg");
+  SIMLOG(SIM_ERROR, "testmessage + %s\n", "msg");
+}
+
 int main() {
   test_valid_addr();
+  test_logger();
 }

@@ -3,7 +3,9 @@
 
 #include "inc_all.h"
 
-extern const int MACHINE_WORD_SIZE;
+extern const u64 MACHINE_WORD_SIZE;
+extern const u64 MAX_SETS_SIZE;
+extern const u64 MAX_BLOCK_SIZE;
 
 inline bool check_addr_valid(u64 addr) {
   assert(MACHINE_WORD_SIZE > 0);

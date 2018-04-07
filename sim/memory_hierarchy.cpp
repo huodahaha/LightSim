@@ -1,13 +1,11 @@
 #include "memory_hierarchy.h"
 
-bool PolicyComponent::check_compatible(PolicyComponent* other) {
-  return _policy_id == other->get_policy_id();
-}
-
 CacheSet::CacheSet(u32 ways, u64 set_no, CacheUnit *unit) :_ways(ways), _set_no(set_no), _blocks(ways, NULL), _parent_cache_unit(unit) {
   assert(_parent_cache_unit != NULL);
   _blk_size = unit->get_blk_size();
   _cr_policy = unit->get_policy();
+  assert(_cr_policy);
+  assert(_blk_size < MAX_BLOCK_SIZE);
 }
 
 CacheSet::~CacheSet() {
@@ -67,7 +65,52 @@ bool CacheSet::try_access_memory(u64 addr, u64 PC) {
 
 void CacheSet::on_memory_arrive(u64 addr, u64 PC) {
   u64 tag = calulate_tag(addr);
-  _cr_policy->on_miss(this, addr, tag, PC);
+  _cr_policy->on_arrive(this, addr, tag, PC);
+}
+
+CacheUnit::CacheUnit(u32 ways, u32 blk_size, u64 sets, CRPolicyInterface * policy)
+  : _ways(ways), _blk_size(blk_size), _sets(sets), _cr_policy(policy) {
+  if (!policy) {
+    SIMLOG(SIM_ERROR, "cache replacemenet policy can not be NULL");
+    exit(1);
+  }
+  else if (sets < MAX_SETS_SIZE) {
+    SIMLOG(SIM_ERROR, "sets number exceed system restriction");
+    exit(1);
+  }
+  else if (blk_size < MAX_BLOCK_SIZE) {
+    SIMLOG(SIM_ERROR, "block size exceed system restriction");
+    exit(1);
+  }
+  else if (is_power_of_two(sets)) {
+    SIMLOG(SIM_ERROR, "sets number should be power of 2");
+    exit(1);
+  }
+  else if (is_power_of_two(blk_size)) {
+    SIMLOG(SIM_ERROR, "block size should be power of 2");
+    exit(1);
+  }
+
+  u32 s = len_of_binary(sets);
+  u32 b = len_of_binary(sets);
+
+  if (s + b >= MACHINE_WORD_SIZE) {
+    SIMLOG(SIM_ERROR, "cache size too large");
+    exit(1);
+  }
+  
+  _cache_sets.resize(_sets);
+  for (u32 i = 0; i < _sets; i++) {
+    CacheSet *line = new CacheSet(ways, i, this);
+    _cache_sets.push_back(line);
+  }
+}
+
+
+CacheUnit::~CacheUnit() {
+  for (u32 i = 0; i < _sets; i++) {
+    delete _cache_sets[i];
+  }
 }
 
 u64 CacheUnit::get_set_no(u64 addr) {

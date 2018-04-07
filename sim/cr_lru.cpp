@@ -1,12 +1,12 @@
 #include "cr_lru.h"
 
-#define RANDOM_POLICY_ID 747382 // magic number for validatio
-
-CR_LRU_BlockFactory CR_LRU_BlockFactory::_instance(RANDOM_POLICY_ID);
-CR_LRU_Policy CR_LRU_Policy::_instance(RANDOM_POLICY_ID);
+CR_LRU_BlockFactory* CR_LRU_BlockFactory::_pinstance = NULL;
+CR_LRU_Policy* CR_LRU_Policy::_pinstance = NULL;
 
 CacheBlockFactoryInterace* CR_LRU_BlockFactory::get_instance() {
-  return &_instance;
+  if (_pinstance == NULL)
+    _pinstance = new CR_LRU_BlockFactory();
+  return _pinstance;
 }
 
 CacheBlockBase* CR_LRU_BlockFactory::create(u64 addr, u64 tag, CacheSet *parent_set, u64 PC) {
@@ -16,7 +16,9 @@ CacheBlockBase* CR_LRU_BlockFactory::create(u64 addr, u64 tag, CacheSet *parent_
 }
 
 CRPolicyInterface* CR_LRU_Policy::get_instance(){
-  return &_instance;
+  if (_pinstance == NULL)
+    _pinstance = new CR_LRU_Policy(CR_LRU_BlockFactory::get_instance());
+  return _pinstance;
 }
 
 void CR_LRU_Policy::on_hit(CacheSet *cache_set, u32 pos, u64 addr, u64 PC) {
@@ -29,7 +31,7 @@ void CR_LRU_Policy::on_hit(CacheSet *cache_set, u32 pos, u64 addr, u64 PC) {
   }
 }
 
-void CR_LRU_Policy::on_miss(CacheSet *cache_set, u64 addr, u64 tag, u64 PC) {
+void CR_LRU_Policy::on_arrive(CacheSet *cache_set, u64 addr, u64 tag, u64 PC) {
   (void)addr, (void)PC;
   u32 ways = cache_set->get_ways();
   auto cand = _factory->create(addr, tag, cache_set, PC);
