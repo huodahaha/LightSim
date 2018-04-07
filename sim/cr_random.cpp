@@ -3,6 +3,7 @@
 #define RANDOM_POLICY_ID 887799       // magic number for validation
 
 CRRandomBlockFactory CRRandomBlockFactory::_instance(RANDOM_POLICY_ID);
+CRRandomPolicy CRRandomPolicy::_instance(RANDOM_POLICY_ID);
 
 CacheBlockFactoryInterace* CRRandomBlockFactory::get_instance() {
   return &_instance;

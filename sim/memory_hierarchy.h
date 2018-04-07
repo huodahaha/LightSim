@@ -34,7 +34,6 @@ class CacheBlockBase {
   CacheBlockBase(u64 addr, u32 blk_size, u64 tag, CacheSet *parent_set):
       _addr(addr), _blk_size(blk_size), _tag(tag), _parent_set(parent_set) {
     assert(is_power_of_two(blk_size));
-    assert(is_power_of_two(sets));
     assert(parent_set);
   } 
 
@@ -105,7 +104,7 @@ class CRPolicyInterface : public PolicyComponent{
 class CacheSet {
  private:
   u32                               _ways;
-  u32                               _block_size;
+  u32                               _blk_size;
   u64                               _set_no;
   vector<CacheBlockBase *>          _blocks;
   CRPolicyInterface *               _cr_policy;
@@ -117,7 +116,7 @@ class CacheSet {
   s32 find_pos_by_tag(u64 tag);
 
  public:
-  CacheSet(u32 ways, CacheUnit *unit) :_ways(ways), _blocks(ways, NULL)  {};
+  CacheSet(u32 ways, u64 set_no, CacheUnit *unit);
   ~CacheSet();
 
   inline const vector<CacheBlockBase *>& get_all_blocks() {
@@ -125,27 +124,27 @@ class CacheSet {
   }
 
   inline u32 get_block_size() {
-    return _block_size;
+    return _blk_size;
   }
 
   inline u64 get_set_no() {
     return _set_no;
   }
 
-  u64 calulate_tag(u64 addr) {};
+  u64 calulate_tag(u64 addr);
 
   // can evict an empty
   void evict_by_pos(u32 pos, CacheBlockBase *blk);
 
-  bool try_access_memory(u64 addr, u64 PC, void* reserved);
-  void on_memory_arrive(u64 addr, u64 PC, void* reserved);
+  bool try_access_memory(u64 addr, u64 PC);
+  void on_memory_arrive(u64 addr, u64 PC);
 };
 
 
 class MemoryInterface {
  public:
-  virtual bool try_access_memory(u64 addr, u64 PC, void* reserved) = 0;
-  virtual void on_memory_arrive(u64 addr, u64 PC, void* reserved) = 0;
+  virtual bool try_access_memory(u64 addr, u64 PC) = 0;
+  virtual void on_memory_arrive(u64 addr, u64 PC) = 0;
 };
 
 
@@ -153,9 +152,8 @@ class CacheUnit: public MemoryInterface {
  private:
   u32                             _blk_size;
   u64                             _sets;
-  vector<u64, CacheSet*>          _cache_lines;
+  vector<CacheSet*>               _cache_sets;
   CRPolicyInterface *             _cr_policy;
-  CacheBlockFactoryInterace  *    _block_factory;
 
  public:
   inline u64 get_sets() {
@@ -166,9 +164,13 @@ class CacheUnit: public MemoryInterface {
     return _blk_size;
   }
 
-  u64 get_set_no();
-  bool try_access_memory(u64 addr, u64 PC, void* reserved);
-  void on_memory_arrive(u64 addr, u64 PC, void* reserved);
+  inline CRPolicyInterface* get_policy() {
+    return _cr_policy;
+  }
+
+  u64 get_set_no(u64 addr);
+  bool try_access_memory(u64 addr, u64 PC);
+  void on_memory_arrive(u64 addr, u64 PC);
 };
 
 /**
@@ -177,8 +179,8 @@ class CacheUnit: public MemoryInterface {
  */
 class MainMemory: public MemoryInterface {
  public:
-  bool try_access_memory(u64 addr, u64 PC, void* reserved);
-  void on_memory_arrive(u64 addr, u64 PC, void* reserved);
+  bool try_access_memory(u64 addr, u64 PC);
+  void on_memory_arrive(u64 addr, u64 PC);
 };
 
 // one per core
@@ -191,7 +193,7 @@ class MemoryHierarchy {
 
 };
 
-// one per system
+// should be a singleton
 class MemoryManager {
  private:
   int _cores;
