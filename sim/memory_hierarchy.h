@@ -10,6 +10,7 @@ using namespace std;
 class CacheBlockBase;
 class CacheBlockFactoryInterace;
 class CacheSet;
+class PolicyComponent;
 class CRPolicyInterface;
 class MemoryInterface;
 class CacheUnit;
@@ -53,25 +54,48 @@ class CacheBlockBase {
 };
 
 /*
- * responsible for creating new cache blocks
- * should be pair with cache replacement policy
+ * Cache replacement policy component checker
+ * component should be organized by group
  */
-class CacheBlockFactoryInterace {
- protected:
-  u32     policy_id;
+class PolicyComponent {
+ private:
+  u32         _policy_id;
+  PolicyComponent() {};                       // forbid default constructor
+  PolicyComponent(const PolicyComponent &) {};   // forbid copy constructor
 
  public:
-  virtual CacheBlockBase* create(u64 addr, u64 PC, void* reserved) = 0;
+  PolicyComponent(u32 policy_id) : _policy_id(policy_id) {}
+  inline u32 get_policy_id() {
+    return _policy_id;
+  }
+  virtual bool check_compatible(PolicyComponent* other);
+};
+
+/*
+ * responsible for creating new cache blocks
+ * should be pair with cache replacement policy
+ * factory class should be a singleton for each cache replacement policy
+ */
+class CacheBlockFactoryInterace : public PolicyComponent {
+ public:
+  CacheBlockFactoryInterace(u32 policy_id) : PolicyComponent(policy_id) {};
+  virtual CacheBlockFactoryInterace *get_instance() = 0;
+  virtual CacheBlockBase* create(u64 addr, u64 tag, CacheSet *parent_set, u64 PC) = 0;
 };
 
 /*
  * Cache replacement policy
+ * policy class should be a singleton for each cache replacement policy
  */
-class CRPolicyInterface {
+class CRPolicyInterface : public PolicyComponent{
+ protected:
+  CacheBlockFactoryInterace *_factory;
+
  public:
-  // this interface will need to refactor to provide more informations
-  virtual void on_hit(CacheSet *line, u32 pos, u64 addr, u64 PC, void* reserved) = 0;
-  virtual void on_miss(CacheSet *line, u32 tag, u64 addr, u64 PC, void* reserved) = 0;
+  CRPolicyInterface(u32 policy_id, CacheBlockFactoryInterace *factory) : PolicyComponent(policy_id), _factory(factory) {};
+  virtual CRPolicyInterface* get_instance() = 0;
+  virtual void on_hit(CacheSet *line, u32 pos, u64 addr, u64 PC) = 0;
+  virtual void on_miss(CacheSet *line, u64 addr, u64 tag, u64 PC) = 0;
 };
 
 /**
@@ -80,23 +104,28 @@ class CRPolicyInterface {
  */
 class CacheSet {
  private:
-  u32                       _ways;
-  u64                       _set_no;
-  vector<CacheBlockBase *>      _blocks;
+  u32                               _ways;
+  u32                               _block_size;
+  u64                               _set_no;
+  vector<CacheBlockBase *>          _blocks;
   CRPolicyInterface *               _cr_policy;
-  CacheUnit *               _parent_cache_unit;
+  CacheUnit *                       _parent_cache_unit;
 
-  CacheSet() {};
-  CacheSet(const CacheSet&) {};
+  CacheSet() {};                        // forbid default constructor
+  CacheSet(const CacheSet&) {};         // forbid copy constructor
 
   s32 find_pos_by_tag(u64 tag);
 
  public:
-  CacheSet(u32 ways, u64 sets) :_ways(ways), _sets(sets), _blocks(ways, NULL) {};
+  CacheSet(u32 ways, CacheUnit *unit) :_ways(ways), _blocks(ways, NULL)  {};
   ~CacheSet();
 
   inline const vector<CacheBlockBase *>& get_all_blocks() {
     return _blocks;
+  }
+
+  inline u32 get_block_size() {
+    return _block_size;
   }
 
   inline u64 get_set_no() {

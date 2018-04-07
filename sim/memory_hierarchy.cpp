@@ -23,7 +23,7 @@ s32 CacheSet::find_pos_by_tag(u64 tag) {
   return -1;
 }
 
-void CacheSet::evict_by_pos(u32 pos, CacheBlock *blk) {
+void CacheSet::evict_by_pos(u32 pos, CacheBlockBase *blk) {
   assert(pos < _ways);
   assert(blk->get_tag() == );
   if (_blocks[pos]) {
@@ -31,6 +31,11 @@ void CacheSet::evict_by_pos(u32 pos, CacheBlock *blk) {
   }
   _blocks[pos] = blk;
 }
+
+bool PolicyComponent::check_compatible(PolicyComponent* other) {
+  return _policy_id == other->get_policy_id();
+}
+
 
 bool CacheSet::try_access_memory(u64 addr, u64 PC, void* reserved) {
   s32 ret = find_pos_by_tag();
