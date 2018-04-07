@@ -35,7 +35,7 @@ void CRRandomPolicy::on_arrive(CacheSet *cache_set, u64 addr, u64 tag, u64 PC) {
   for (u32 i = 0; i < blocks.size(); i++) {
     if (blocks[i] == NULL) {
       victim = i;
-      break;;
+      break;
     }
   }
 

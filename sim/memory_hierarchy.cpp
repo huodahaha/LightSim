@@ -1,5 +1,8 @@
 #include "memory_hierarchy.h"
 
+MemoryStats* MemoryStats::_pinstance = new MemoryStats();
+MainMemory* MainMemory::_pinstance = new MainMemory();
+
 CacheSet::CacheSet(u32 ways, u64 set_no, CacheUnit *unit) :_ways(ways), _set_no(set_no), _blocks(ways, NULL), _parent_cache_unit(unit) {
   assert(_parent_cache_unit != NULL);
   _blk_size = unit->get_blk_size();
@@ -74,19 +77,19 @@ CacheUnit::CacheUnit(u32 ways, u32 blk_size, u64 sets, CRPolicyInterface * polic
     SIMLOG(SIM_ERROR, "cache replacemenet policy can not be NULL");
     exit(1);
   }
-  else if (sets < MAX_SETS_SIZE) {
+  else if (sets >= MAX_SETS_SIZE) {
     SIMLOG(SIM_ERROR, "sets number exceed system restriction");
     exit(1);
   }
-  else if (blk_size < MAX_BLOCK_SIZE) {
+  else if (blk_size >= MAX_BLOCK_SIZE) {
     SIMLOG(SIM_ERROR, "block size exceed system restriction");
     exit(1);
   }
-  else if (is_power_of_two(sets)) {
+  else if (!is_power_of_two(sets)) {
     SIMLOG(SIM_ERROR, "sets number should be power of 2");
     exit(1);
   }
-  else if (is_power_of_two(blk_size)) {
+  else if (!is_power_of_two(blk_size)) {
     SIMLOG(SIM_ERROR, "block size should be power of 2");
     exit(1);
   }
@@ -99,13 +102,11 @@ CacheUnit::CacheUnit(u32 ways, u32 blk_size, u64 sets, CRPolicyInterface * polic
     exit(1);
   }
   
-  _cache_sets.resize(_sets);
   for (u32 i = 0; i < _sets; i++) {
     CacheSet *line = new CacheSet(ways, i, this);
     _cache_sets.push_back(line);
   }
 }
-
 
 CacheUnit::~CacheUnit() {
   for (u32 i = 0; i < _sets; i++) {
@@ -116,14 +117,22 @@ CacheUnit::~CacheUnit() {
 u64 CacheUnit::get_set_no(u64 addr) {
   u32 s = len_of_binary(_sets);
   u32 b = len_of_binary(_blk_size);
-  return addr << (MACHINE_WORD_SIZE - s - b) >> (64 - s);
+  return addr << (MACHINE_WORD_SIZE - s - b) >> (MACHINE_WORD_SIZE - s);
 }
 
 bool CacheUnit::try_access_memory(u64 addr, u64 PC) {
   u64 set_no = get_set_no(addr);
   assert(set_no < _cache_sets.size());
   auto cache_set = _cache_sets[set_no];
-  return cache_set->try_access_memory(addr, PC);
+  auto ret = cache_set->try_access_memory(addr, PC);
+  auto stats = MemoryStats::get_instance();
+  if (ret == true) {
+    stats->increment_hit();
+  }
+  else {
+    stats->increment_miss();
+  }
+  return ret;
 }
 
 void CacheUnit::on_memory_arrive(u64 addr, u64 PC) {
@@ -142,3 +151,12 @@ void MainMemory::on_memory_arrive(u64 addr, u64 PC) {
   (void)addr, (void)PC;
 }
 
+void MemoryStats::display(FILE *stream) {
+  fprintf(stream, "cache hits %llu\n", _hits);
+  fprintf(stream, "cache misses %llu\n", _misses);
+}
+
+void MemoryStats::clear() {
+  _hits = 0;
+  _misses = 0;
+}

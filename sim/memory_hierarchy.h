@@ -14,6 +14,7 @@ class CRPolicyInterface;
 class MemoryInterface;
 class CacheUnit;
 class MainMemory;
+class MemoryStats;
 
 /**
  * Cache Block, reserved_info for complex cache replacement policy
@@ -66,6 +67,7 @@ class CacheBlockBase {
 class CacheBlockFactoryInterace{
  public:
   CacheBlockFactoryInterace() {};
+  virtual ~CacheBlockFactoryInterace() {};
   virtual CacheBlockBase* create(u64 addr, u64 tag, CacheSet *parent_set, u64 PC) = 0;
 };
 
@@ -79,6 +81,7 @@ class CRPolicyInterface {
 
  public:
   CRPolicyInterface(CacheBlockFactoryInterace *factory): _factory(factory) {};
+  virtual ~CRPolicyInterface() {};
   virtual void on_hit(CacheSet *line, u32 pos, u64 addr, u64 PC) = 0;
   virtual void on_arrive(CacheSet *line, u64 addr, u64 tag, u64 PC) = 0;
 };
@@ -136,6 +139,7 @@ class MemoryInterface {
  public:
   virtual bool try_access_memory(u64 addr, u64 PC) = 0;
   virtual void on_memory_arrive(u64 addr, u64 PC) = 0;
+  virtual ~MemoryInterface(){};
 };
 
 
@@ -176,9 +180,50 @@ class CacheUnit: public MemoryInterface {
  * assume there is no MMU, no page fault
  */
 class MainMemory: public MemoryInterface {
+ private:
+  static MainMemory *_pinstance;
+  MainMemory() {};
+
  public:
+  ~MainMemory() {
+    if (_pinstance) delete _pinstance;
+  }
+
+  inline static MainMemory* get_instance() {
+    return _pinstance;
+  } 
+
   bool try_access_memory(u64 addr, u64 PC);
   void on_memory_arrive(u64 addr, u64 PC);
+};
+
+class MemoryStats {
+ private:
+  u64 _misses;
+  u64 _hits;
+  static MemoryStats *_pinstance;
+
+  MemoryStats(): _misses(0), _hits(0) {};
+
+ public:
+  ~MemoryStats() {
+    if (_pinstance) delete _pinstance;
+  }
+
+  inline static MemoryStats* get_instance() {
+    return _pinstance; 
+  }
+
+  inline void increment_miss() {
+    _misses++;
+  }
+
+  inline void increment_hit() {
+    _hits++;
+  }
+
+  void display(FILE *stream);
+  void clear();
 };
 
 // one per core

@@ -2,7 +2,7 @@ CPP = g++
 INC_PATH = -I
 # 带有外部Include时添加
 # CPPFLAGS = -pg -g -Wall $(INC_PATH)
-CPPFLAGS = -pg -Wall -std=c++0x
+CPPFLAGS = -pg -g -Wall -std=c++0x
 RM = rm -rf
 SVR_SRC = $(wildcard *.cpp)
 SVR_OBJ = $(addprefix ./,$(subst .cpp,.o,$(SVR_SRC)))
