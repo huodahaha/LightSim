@@ -28,7 +28,6 @@ class CacheBlockBase {
   CacheSet*      _parent_set;
 
   CacheBlockBase() {};
-  CacheBlockBase(const CacheBlockBase &) {};
 
  public:
   CacheBlockBase(u64 addr, u32 blk_size, u64 tag, CacheSet *parent_set):
@@ -36,6 +35,10 @@ class CacheBlockBase {
     assert(is_power_of_two(blk_size));
     assert(parent_set);
   } 
+
+  CacheBlockBase(const CacheBlockBase &other): 
+      _addr(other._addr), _blk_size(other._blk_size), _tag(other._blk_size)
+      , _parent_set(other._parent_set) {};
 
   virtual ~CacheBlockBase() {};
 
@@ -49,6 +52,10 @@ class CacheBlockBase {
 
   inline u64 get_tag() {
     return _tag;
+  }
+
+  inline CacheSet* get_parent_set() {
+    return _parent_set;
   }
 };
 
@@ -123,6 +130,10 @@ class CacheSet {
     return _blocks;
   }
 
+  inline u32 get_ways() {
+    return _ways;
+  }
+
   inline u32 get_block_size() {
     return _blk_size;
   }
@@ -134,7 +145,8 @@ class CacheSet {
   u64 calulate_tag(u64 addr);
 
   // can evict an empty
-  void evict_by_pos(u32 pos, CacheBlockBase *blk);
+  void evict_by_pos(u32 pos, CacheBlockBase *blk, bool is_delete = true);
+  CacheBlockBase* get_block_by_pos(u32 pos);
 
   bool try_access_memory(u64 addr, u64 PC);
   void on_memory_arrive(u64 addr, u64 PC);

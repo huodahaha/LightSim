@@ -39,12 +39,18 @@ s32 CacheSet::find_pos_by_tag(u64 tag) {
   return -1;
 }
 
-void CacheSet::evict_by_pos(u32 pos, CacheBlockBase *blk) {
+void CacheSet::evict_by_pos(u32 pos, CacheBlockBase *blk, bool is_delete) {
   assert(pos < _ways);
-  if (_blocks[pos]) {
+  if (is_delete && _blocks[pos]) {
     delete _blocks[pos];
   }
   _blocks[pos] = blk;
+}
+
+
+CacheBlockBase* CacheSet::get_block_by_pos(u32 pos) {
+  assert(pos < _ways);
+  return _blocks[pos];
 }
 
 bool CacheSet::try_access_memory(u64 addr, u64 PC) {
