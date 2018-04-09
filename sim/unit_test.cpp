@@ -1,7 +1,6 @@
 #include "memory_helper.h"
 #include "memory_hierarchy.h"
-#include "cr_lru.h"
-#include "cr_random.h"
+#include "cr_factory.h"
 
 #include <iostream>
 #include <fstream>
@@ -38,8 +37,9 @@ void test_cache_unit() {
 
   auto main__memory = MainMemoryObj::get_instance();
   auto display = MemoryStatsObj::get_instance();
-  auto lru = CR_LRU_Policy::get_instance();
-  auto random = CRRandomPolicy::get_instance();
+  auto factory = PolicyFactoryObj::get_instance();
+  auto lru = factory->get_policy(LRU_POLICY);
+  auto random = factory->get_policy(RANDOM_POLICY);
 
   // test for lru + sequence
   {
@@ -111,8 +111,9 @@ void test_trace() {
 
   auto main__memory = MainMemoryObj::get_instance();
   auto display = MemoryStatsObj::get_instance();
-  auto lru = CR_LRU_Policy::get_instance();
-  auto random = CRRandomPolicy::get_instance();
+  auto factory = PolicyFactoryObj::get_instance();
+  auto lru = factory->get_policy(LRU_POLICY);
+  auto random = factory->get_policy(RANDOM_POLICY);
 
   // test for lru + sequence
   {

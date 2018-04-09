@@ -7,6 +7,7 @@
 #include <cassert>
 #include <vector>
 #include <queue>
+#include <map>
 #include <functional>
 
 #include "util.h"
