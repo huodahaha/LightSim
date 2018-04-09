@@ -1,8 +1,5 @@
 #include "memory_hierarchy.h"
 
-MemoryStats* MemoryStats::_pinstance = new MemoryStats();
-MainMemory* MainMemory::_pinstance = new MainMemory();
-
 CacheSet::CacheSet(u32 ways, u64 set_no, CacheUnit *unit) :_ways(ways), _set_no(set_no), _blocks(ways, NULL), _parent_cache_unit(unit) {
   assert(_parent_cache_unit != NULL);
   _blk_size = unit->get_blk_size();
@@ -125,7 +122,7 @@ bool CacheUnit::try_access_memory(u64 addr, u64 PC) {
   assert(set_no < _cache_sets.size());
   auto cache_set = _cache_sets[set_no];
   auto ret = cache_set->try_access_memory(addr, PC);
-  auto stats = MemoryStats::get_instance();
+  auto stats = MemoryStatsObj::get_instance();
   if (ret == true) {
     stats->increment_hit();
   }

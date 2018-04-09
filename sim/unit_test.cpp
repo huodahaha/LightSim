@@ -36,8 +36,8 @@ void test_cache_unit() {
   u32 blk_size = 128;
   u64 sets = 256;
 
-  auto main__memory = MainMemory::get_instance();
-  auto display = MemoryStats::get_instance();
+  auto main__memory = MainMemoryObj::get_instance();
+  auto display = MemoryStatsObj::get_instance();
   auto lru = CR_LRU_Policy::get_instance();
   auto random = CRRandomPolicy::get_instance();
 
@@ -109,8 +109,8 @@ void test_trace() {
   u32 blk_size = 64;
   u64 sets = 128;
 
-  auto main__memory = MainMemory::get_instance();
-  auto display = MemoryStats::get_instance();
+  auto main__memory = MainMemoryObj::get_instance();
+  auto display = MemoryStatsObj::get_instance();
   auto lru = CR_LRU_Policy::get_instance();
   auto random = CRRandomPolicy::get_instance();
 

@@ -2,7 +2,7 @@
 #define MEMORY_HIERARCHY
 
 #include "inc_all.h"
-#include "event_queue.h"
+#include "event_engine.h"
 #include "memory_helper.h"
 
 using namespace std;
@@ -180,39 +180,20 @@ class CacheUnit: public MemoryInterface {
  * assume there is no MMU, no page fault
  */
 class MainMemory: public MemoryInterface {
- private:
-  static MainMemory *_pinstance;
-  MainMemory() {};
-
  public:
-  ~MainMemory() {
-    if (_pinstance) delete _pinstance;
-  }
-
-  inline static MainMemory* get_instance() {
-    return _pinstance;
-  } 
-
   bool try_access_memory(u64 addr, u64 PC);
   void on_memory_arrive(u64 addr, u64 PC);
 };
+
+typedef Singleton <MainMemory> MainMemoryObj;
 
 class MemoryStats {
  private:
   u64 _misses;
   u64 _hits;
-  static MemoryStats *_pinstance;
-
-  MemoryStats(): _misses(0), _hits(0) {};
 
  public:
-  ~MemoryStats() {
-    if (_pinstance) delete _pinstance;
-  }
-
-  inline static MemoryStats* get_instance() {
-    return _pinstance; 
-  }
+  MemoryStats(): _misses(0), _hits(0) {};
 
   inline void increment_miss() {
     _misses++;
@@ -225,6 +206,8 @@ class MemoryStats {
   void display(FILE *stream);
   void clear();
 };
+
+typedef Singleton <MemoryStats> MemoryStatsObj;
 
 // one per core
 // todo

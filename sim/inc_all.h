@@ -9,6 +9,9 @@
 #include <queue>
 #include <functional>
 
+#include "util.h"
+
+typedef signed long long s64;
 typedef unsigned long long u64;
 typedef unsigned int u32;
 typedef signed int s32;
