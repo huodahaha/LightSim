@@ -4,8 +4,8 @@ static const u8 TICK_FACTOR = 10;
 static const u8 TYPE_FACTOR = 6;
 
 void EventHandler::proc_event(Event *e) {
-  assert(e->type == get_type());
-  proc(e->callbackdata);
+  assert(validate(e->type));
+  proc(e->callbackdata, e->type);
 }
 
 void Event::execute() {

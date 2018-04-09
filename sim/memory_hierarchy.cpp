@@ -86,31 +86,62 @@ void CacheSet::print_blocks(FILE* fs) {
   fprintf(fs, "\n");
 }
 
-CacheUnit::CacheUnit(u32 ways, u32 blk_size, u64 sets, CRPolicyInterface * policy)
-  : _ways(ways), _blk_size(blk_size), _sets(sets), _cr_policy(policy) {
-  if (!policy) {
+void MemoryUnit::proc(EventDataBase* data, EventType type) {
+  MemoryEventData *memory_data = (MemoryEventData *)data;
+  MemoryEventData *d = new MemoryEventData(*memory_data);
+
+  EventEngine *evnet_queue = EventEngineObj::get_instance();
+
+  if (type == MemoryOnAccess) {
+    bool ret = try_access_memory(memory_data->addr, memory_data->PC);
+    if (ret == true) {
+      Event *e = new Event(MemoryOnArrive, _prev_unit, d);
+      evnet_queue->register_after_now(e, get_latency(), _prev_unit->get_priority());
+    }
+    else {
+      Event *e = new Event(MemoryOnAccess, _prev_unit, d);
+      evnet_queue->register_after_now(e, 0, _next_unit->get_priority());
+    }
+  }
+
+  else if (type == MemoryOnArrive) {
+    on_memory_arrive(memory_data->addr, memory_data->PC);
+    Event *e = new Event(MemoryOnArrive, _prev_unit, d);
+    evnet_queue->register_after_now(e, get_latency(), _prev_unit->get_priority());
+  }
+}
+
+bool MemoryUnit::validate(EventType type) {
+  return ((type == MemoryOnAccess) || (type == MemoryOnArrive));
+}
+
+CacheUnit::CacheUnit(const CacheConfig &config, const MemoryUnitCtx &ctx)
+  : MemoryUnit(ctx), _ways(config.ways), _blk_size(config.blk_size), _sets(config.sets){
+  auto factory = PolicyFactoryObj::get_instance();
+  _cr_policy = factory->create_policy(config.policy_type);
+  if (!_cr_policy) {
     SIMLOG(SIM_ERROR, "cache replacemenet policy can not be NULL");
     exit(1);
   }
-  else if (sets >= MAX_SETS_SIZE) {
+  else if (_sets >= MAX_SETS_SIZE) {
     SIMLOG(SIM_ERROR, "sets number exceed system restriction");
     exit(1);
   }
-  else if (blk_size >= MAX_BLOCK_SIZE) {
+  else if (_blk_size >= MAX_BLOCK_SIZE) {
     SIMLOG(SIM_ERROR, "block size exceed system restriction");
     exit(1);
   }
-  else if (!is_power_of_two(sets)) {
+  else if (!is_power_of_two(_sets)) {
     SIMLOG(SIM_ERROR, "sets number should be power of 2");
     exit(1);
   }
-  else if (!is_power_of_two(blk_size)) {
+  else if (!is_power_of_two(_blk_size)) {
     SIMLOG(SIM_ERROR, "block size should be power of 2");
     exit(1);
   }
 
-  u32 s = len_of_binary(sets);
-  u32 b = len_of_binary(sets);
+  u32 s = len_of_binary(_sets);
+  u32 b = len_of_binary(_sets);
 
   if (s + b >= MACHINE_WORD_SIZE) {
     SIMLOG(SIM_ERROR, "cache size too large");
@@ -118,7 +149,7 @@ CacheUnit::CacheUnit(u32 ways, u32 blk_size, u64 sets, CRPolicyInterface * polic
   }
   
   for (u32 i = 0; i < _sets; i++) {
-    CacheSet *line = new CacheSet(ways, i, this);
+    CacheSet *line = new CacheSet(_ways, i, this);
     _cache_sets.push_back(line);
   }
 }
@@ -177,4 +208,32 @@ void MemoryStats::display(FILE *stream) {
 void MemoryStats::clear() {
   _hits = 0;
   _misses = 0;
+}
+
+MemoryPipeLine::MemoryPipeLine(vector<CacheConfig> &configs, MemoryUnit *alu) {
+  assert(configs.size() > 0);
+
+  MemoryUnitCtx ctx;
+  // Assume we have the pipeline L1 -> L2 -> .... -> Main Memory 
+  // the leftmost have the lowest priority, the right most have 
+  // highest proiority
+  ctx.priority = 0;
+
+  MemoryUnit *cur = alu;
+
+  
+  for (const auto &config: configs) {
+    ctx.priority++;
+    ctx.next_unit = NULL;
+    auto cache = new CacheUnit(config, ctx);
+    
+  }
+}
+
+MemoryPipeLine::~MemoryPipeLine() {
+  for (int i = 0; i < 
+}
+
+bool MemoryPipeLine::try_access_memory(u64 addr, u64 PC) {
+  return _head->try_access_memory(addr, PC);
 }

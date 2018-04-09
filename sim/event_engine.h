@@ -40,12 +40,15 @@ enum EventType {
 };
 
 // base class for callbackdata
-struct EventDataBase {};
+struct EventDataBase {
+  virtual ~EventDataBase();
+};
 
 class EventHandler {
  protected:
-  virtual void proc(EventDataBase* data) = 0;
-  virtual EventType get_type() = 0;
+  virtual void proc(EventDataBase* data, EventType type) = 0;
+  // validate if this hander can handle the comming event
+  virtual bool validate(EventType type) = 0;
 
  public:
   void proc_event(Event *e);
@@ -55,6 +58,13 @@ struct Event {
   EventType         type;
   EventHandler*     handler;
   EventDataBase*    callbackdata;
+
+  Event(EventType type_, EventHandler* handler_, EventDataBase* d_):
+      type(type_), handler(handler_), callbackdata(d_){};
+
+  ~Event() {
+    delete callbackdata;
+  }
 
   void execute();
 };
@@ -74,5 +84,7 @@ class EventEngine {
   void register_after_now(Event* e, u32 ticks, u32 priority);
   int loop();
 };
+
+typedef Singleton <EventEngine> EventEngineObj;
 
 #endif

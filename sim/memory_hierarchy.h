@@ -4,6 +4,7 @@
 #include "inc_all.h"
 #include "event_engine.h"
 #include "memory_helper.h"
+#include "event_engine.h"
 
 using namespace std;
 
@@ -12,14 +13,46 @@ class CacheBlockFactoryInterace;
 class CacheSet;
 class CRPolicyInterface;
 class MemoryInterface;
+class MemoryUnit;
 class CacheUnit;
 class MainMemory;
 class MemoryStats;
 
-/**
- * Cache Block, reserved_info for complex cache replacement policy
- * cache block can be overriden for store more informations
- */
+/*********************************  Enums  ********************************/
+enum CR_POLICY {
+  LRU_POLICY,
+  RANDOM_POLICY,
+  POLICY_CNT
+};
+/**************************************************************************/
+
+/*********************************  DTO   ********************************/
+
+// memory unit context 
+struct MemoryUnitCtx {
+  u32               latency;
+  u32               priority;
+};
+
+// cache unit configuration
+struct CacheConfig {
+  u32           ways;
+  u32           blk_size;
+  u64           sets;
+  CR_POLICY     policy_type;
+};
+
+struct MemoryEventData : public EventDataBase {
+  u64 addr;
+  u64 PC;
+
+  MemoryEventData(u64 addr_, u64 PC_) : addr(addr_), PC(PC_) {};
+};
+
+/**************************************************************************/
+
+
+/********************************  Objects ********************************/
 class CacheBlockBase {
  protected:
   u64             _addr; 
@@ -32,9 +65,9 @@ class CacheBlockBase {
  public:
   CacheBlockBase(u64 addr, u32 blk_size, u64 tag, CacheSet *parent_set):
       _addr(addr), _blk_size(blk_size), _tag(tag), _parent_set(parent_set) {
-    assert(is_power_of_two(blk_size));
-    assert(parent_set);
-  } 
+        assert(is_power_of_two(blk_size));
+        assert(parent_set);
+      } 
 
   CacheBlockBase(const CacheBlockBase &other): 
       _addr(other._addr), _blk_size(other._blk_size), _tag(other._blk_size)
@@ -45,7 +78,7 @@ class CacheBlockBase {
   inline u64 get_addr() {
     return _addr;
   }
-  
+
   inline u64 get_blk_size() {
     return _blk_size;
   }
@@ -59,11 +92,6 @@ class CacheBlockBase {
   }
 };
 
-/*
- * responsible for creating new cache blocks
- * should be pair with cache replacement policy
- * factory class should be a singleton for each cache replacement policy
- */
 class CacheBlockFactoryInterace{
  public:
   CacheBlockFactoryInterace() {};
@@ -71,10 +99,6 @@ class CacheBlockFactoryInterace{
   virtual CacheBlockBase* create(u64 addr, u64 tag, CacheSet *parent_set, u64 PC) = 0;
 };
 
-/*
- * Cache replacement policy
- * policy class should be a singleton for each cache replacement policy
- */
 class CRPolicyInterface {
  protected:
   CacheBlockFactoryInterace *_factory;
@@ -85,6 +109,22 @@ class CRPolicyInterface {
   virtual void on_hit(CacheSet *line, u32 pos, u64 addr, u64 PC) = 0;
   virtual void on_arrive(CacheSet *line, u64 addr, u64 tag, u64 PC) = 0;
 };
+
+class PolicyFactory {
+ private:
+  map<CR_POLICY, CRPolicyInterface*>      _shared_policies;
+  vector<CRPolicyInterface*>              _policies;
+
+ public:
+  PolicyFactory() {};
+  ~PolicyFactory();
+
+  CRPolicyInterface* get_policy(CR_POLICY policy_type);
+
+  // when policy use private data
+  CRPolicyInterface* create_policy(CR_POLICY policy_type);
+};
+
 
 /**
  * Cache Set, all cache blokcs are stored in vector rather than queue
@@ -136,28 +176,60 @@ class CacheSet {
   void print_blocks(FILE* fs);
 };
 
-
-class MemoryInterface {
+class MemoryInterface : public EventHandler {
  public:
   virtual bool try_access_memory(u64 addr, u64 PC) = 0;
   virtual void on_memory_arrive(u64 addr, u64 PC) = 0;
-  virtual ~MemoryInterface(){};
 };
 
-
-class CacheUnit: public MemoryInterface {
+class MemoryUnit : public MemoryInterface {
  private:
+  MemoryUnit *      _prev_unit;
+  MemoryUnit *      _next_unit;
+  MemoryUnit() {};
+  MemoryUnit(const MemoryUnit&) {};
+
+ protected:
+  // for event engine
+  u32                             _latency;
+  u32                             _priority;
+
+  void proc(EventDataBase* data, EventType type);
+  bool validate(EventType type);
+
+ public:
+  MemoryUnit(const MemoryUnitCtx& ctx) : _latency(ctx.latency), _priority(ctx.priority){};
+
+  virtual ~MemoryUnit(){};
+
+  inline u32 get_latency() {
+    return _latency;
+  }
+
+  inline u32 get_priority() {
+    return _priority;
+  }
+
+  inline void set_prev(MemoryUnit *p) {
+    _prev_unit = p;
+  }
+
+  inline void set_next(MemoryUnit *n) {
+    _next_unit = n;
+  }
+};
+
+class CacheUnit: public MemoryUnit {
+ private:
+  // for memory
   u32                             _ways;
   u32                             _blk_size;
   u64                             _sets;
-  vector<CacheSet*>               _cache_sets;
   CRPolicyInterface *             _cr_policy;
-
-  CacheUnit() {};
-  CacheUnit(const CacheUnit &) {};
+  vector<CacheSet*>               _cache_sets;
 
  public:
-  CacheUnit(u32 ways, u32 blk_size, u64 sets, CRPolicyInterface * policy);
+  CacheUnit(const CacheConfig &config, const MemoryUnitCtx &ctx);
   ~CacheUnit ();
 
   inline u64 get_sets() {
@@ -173,6 +245,7 @@ class CacheUnit: public MemoryInterface {
   }
 
   u64 get_set_no(u64 addr);
+
   bool try_access_memory(u64 addr, u64 PC);
   void on_memory_arrive(u64 addr, u64 PC);
 };
@@ -181,13 +254,13 @@ class CacheUnit: public MemoryInterface {
  * Main Memory
  * assume there is no MMU, no page fault
  */
-class MainMemory: public MemoryInterface {
+class MainMemory: public MemoryUnit {
  public:
+  MainMemory(const MemoryUnitCtx &ctx): MemoryUnit(ctx) {};
+
   bool try_access_memory(u64 addr, u64 PC);
   void on_memory_arrive(u64 addr, u64 PC);
 };
-
-typedef Singleton <MainMemory> MainMemoryObj;
 
 class MemoryStats {
  private:
@@ -209,32 +282,23 @@ class MemoryStats {
   void clear();
 };
 
-typedef Singleton <MemoryStats> MemoryStatsObj;
-
-// one per core
-// todo
-class MemoryHierarchy {
-  private:
-   MemoryInterface* _entry;
-
-  public:
-
-};
-
-// should be a singleton
-// todo
-class MemoryManager {
+class MemoryPipeLine {
  private:
-  int _cores;
-  vector<MemoryHierarchy *> _memory_hierarchys;
+  vector<MemoryUnit *>  _units;
+  EventHandler*         _alu;
+  MemoryUnit *          _head;
 
  public:
-  MemoryHierarchy* get_memory_by_core(int core_id) {
-    assert(core_id >= 0);
-    assert(core_id < _cores);
-    return _memory_hierarchys[core_id];
-  }
-
+  MemoryPipeLine(vector<CacheConfig> &configs, MemoryUnit *alu);
+  ~MemoryPipeLine();
+  bool try_access_memory(u64 addr, u64 PC);
 };
+
+/**************************************************************************/
+
+/********************************  Singleton ******************************/
+
+typedef Singleton<PolicyFactory> PolicyFactoryObj;
+typedef Singleton <MemoryStats> MemoryStatsObj;
 
 #endif
