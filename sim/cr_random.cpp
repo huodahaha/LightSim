@@ -1,21 +1,19 @@
 #include "cr_random.h"
 
-CacheBlockBase* CRRandomBlockFactory::create(u64 addr, u64 tag, CacheSet *parent_set, u64 PC) {
-  (void)PC;
-  CacheBlockBase *blk = new CacheBlockBase(addr, parent_set->get_block_size(), tag, parent_set);
+CacheBlockBase* CRRandomBlockFactory::create(u64 tag, u64 blk_size, const MemoryAccessInfo &info) {
+  CacheBlockBase *blk = new CacheBlockBase(info.addr, blk_size, tag);
   return blk;
 }
 
-void CRRandomPolicy::on_hit(CacheSet *cache_set, u32 pos, u64 addr, u64 PC) {
+void CRRandomPolicy::on_hit(CacheSet *line, u32 pos, const MemoryAccessInfo &info) {
   // do nothing when a hit
-  (void)cache_set, (void)pos;
-  (void)addr, (void)PC;
+  (void)line, (void)pos, (void)info;
 }
 
-void CRRandomPolicy::on_arrive(CacheSet *cache_set, u64 addr, u64 tag, u64 PC) {
-  auto blocks = cache_set->get_all_blocks();
+void CRRandomPolicy::on_arrive(CacheSet *line, u64 tag, const MemoryAccessInfo &info) {
+  auto blocks = line->get_all_blocks();
   u32 victim = rand()% blocks.size(); 
-  auto new_block = _factory->create(addr, tag, cache_set, PC);
+  auto new_block = _factory->create(tag, line->get_block_size(), info);
   
   for (u32 i = 0; i < blocks.size(); i++) {
     if (blocks[i] == NULL) {
@@ -24,5 +22,5 @@ void CRRandomPolicy::on_arrive(CacheSet *cache_set, u64 addr, u64 tag, u64 PC) {
     }
   }
 
-  cache_set->evict_by_pos(victim, new_block, true);
+  line->evict_by_pos(victim, new_block, true);
 }
