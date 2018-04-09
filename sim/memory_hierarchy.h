@@ -132,6 +132,8 @@ class CacheSet {
 
   bool try_access_memory(u64 addr, u64 PC);
   void on_memory_arrive(u64 addr, u64 PC);
+
+  void print_blocks(FILE* fs);
 };
 
 

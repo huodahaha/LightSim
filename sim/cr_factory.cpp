@@ -30,8 +30,8 @@ CRPolicyInterface* PolicyFactory::create_policy(CR_POLICY policy_type) {
       break;
 
     case RANDOM_POLICY:
-      factory = new CR_LRU_BlockFactory();
-      ret = new CR_LRU_Policy(factory);
+      factory = new CRRandomBlockFactory();
+      ret = new CRRandomPolicy(factory);
       break;
 
     default:

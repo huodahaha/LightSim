@@ -25,5 +25,6 @@ void CR_LRU_Policy::on_arrive(CacheSet *cache_set, u64 addr, u64 tag, u64 PC) {
     cache_set->evict_by_pos(i, cand, false);
     cand = to_evict;
   }
+  
   delete cand;
 }

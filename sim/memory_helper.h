@@ -18,26 +18,14 @@ inline bool is_power_of_two(u64 num) {
   return (num & (num - 1)) == 0;
 }
 
-// a little special: it will return how many bits is needed to present (num)
-// numbers
-// 0 -> 0
-// 1 -> 1
-// 2 -> 1
-// 3 -> 2
-// 4 -> 2
 inline u32 len_of_binary(u64 num) {
+  assert(is_power_of_two(num));
   int ret = 0;
-  if (num == 0) {
-    return 0;
-  }
-  else {
-    num -= 1;
-  }
   while (num) {
     num = num >> 1;
     ret++;
   }
-  return ret;
+  return ret-1;
 }
 
 #endif

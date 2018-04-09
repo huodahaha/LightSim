@@ -18,10 +18,9 @@ void test_valid_addr() {
   assert(is_power_of_two(9) == false);
   assert(is_power_of_two(17) == false);
 
-  assert(len_of_binary(3) == 2);
+  assert(len_of_binary(1) == 0);
   assert(len_of_binary(8) == 3);
   assert(len_of_binary(16) == 4);
-  assert(len_of_binary(19) == 5);
 }
 
 void test_logger() {
@@ -31,9 +30,9 @@ void test_logger() {
 }
 
 void test_cache_unit() {
-  u32 ways = 4;
+  u32 ways = 8;
   u32 blk_size = 128;
-  u64 sets = 256;
+  u64 sets = 4;
 
   auto main__memory = MainMemoryObj::get_instance();
   auto display = MemoryStatsObj::get_instance();
@@ -46,7 +45,7 @@ void test_cache_unit() {
     fprintf(stdout, "\n\ntest for LRU + sequence reference every 4 bytes\n");
     auto cache = new CacheUnit(ways, blk_size, sets, lru);
 
-    for (u64 addr = 0; addr < (1 << 16); addr += 4) {
+    for (s64 addr = 0; addr < (1 << 8); addr += 4) {
       u64 PC = 0;       // dummy PC
       auto ret = cache->try_access_memory(addr, PC);
       if (ret == false) {
@@ -55,6 +54,7 @@ void test_cache_unit() {
         assert(ret);
         cache->on_memory_arrive(addr, PC);
       }
+
     }
     display->display(stdout);
     display->clear();
@@ -176,5 +176,5 @@ int main() {
   test_valid_addr();
   test_logger();
   test_cache_unit();
-  test_trace();
+  //test_trace();
 }

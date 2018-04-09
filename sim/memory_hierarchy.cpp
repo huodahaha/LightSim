@@ -45,7 +45,6 @@ void CacheSet::evict_by_pos(u32 pos, CacheBlockBase *blk, bool is_delete) {
   _blocks[pos] = blk;
 }
 
-
 CacheBlockBase* CacheSet::get_block_by_pos(u32 pos) {
   assert(pos < _ways);
   return _blocks[pos];
@@ -58,14 +57,33 @@ bool CacheSet::try_access_memory(u64 addr, u64 PC) {
     return false;
   }
   else {
+    //printf("on hit\n");
+    //print_blocks(stdout);
     _cr_policy->on_hit(this, pos, addr, PC);
+    //print_blocks(stdout);
     return true;
   }
 }
 
 void CacheSet::on_memory_arrive(u64 addr, u64 PC) {
   u64 tag = calulate_tag(addr);
+  //printf("on arrive\n");
+  //print_blocks(stdout);
   _cr_policy->on_arrive(this, addr, tag, PC);
+  //print_blocks(stdout);
+}
+
+void CacheSet::print_blocks(FILE* fs) {
+  fprintf(fs, "set NO.%llu:\t", _set_no);
+  for (auto blk: _blocks) {
+    if (blk == NULL) {
+      fprintf(fs, "null\t");
+    }
+    else {
+      fprintf(fs, "%llu\t", blk->get_addr());
+    }
+  }
+  fprintf(fs, "\n");
 }
 
 CacheUnit::CacheUnit(u32 ways, u32 blk_size, u64 sets, CRPolicyInterface * policy)
@@ -114,7 +132,10 @@ CacheUnit::~CacheUnit() {
 u64 CacheUnit::get_set_no(u64 addr) {
   u32 s = len_of_binary(_sets);
   u32 b = len_of_binary(_blk_size);
-  return addr << (MACHINE_WORD_SIZE - s - b) >> (MACHINE_WORD_SIZE - s);
+  if (s == 0)
+    return 0;
+  else
+    return addr << (MACHINE_WORD_SIZE - s - b) >> (MACHINE_WORD_SIZE - s);
 }
 
 bool CacheUnit::try_access_memory(u64 addr, u64 PC) {
