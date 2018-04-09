@@ -1,6 +1,8 @@
 #ifndef MEMORY_HIERARCHY
 #define MEMORY_HIERARCHY
 
+#include <unordered_set>
+
 #include "inc_all.h"
 #include "event_engine.h"
 #include "memory_helper.h"
@@ -184,10 +186,18 @@ class MemoryInterface : public EventHandler {
 
 class MemoryUnit : public MemoryInterface {
  private:
-  MemoryUnit *      _prev_unit;
-  MemoryUnit *      _next_unit;
+  // for LLC there are multiple previous memory units
+  vector<MemoryUnit*>     _prev_units;
+  MemoryUnit *            _next_unit;
+  
+  // since there could be more than one previous memory units
+  // we store all pending address to identify if need process a 
+  // memory on arrive event
+  unordered_set<u64>      _pending_refs;
+
   MemoryUnit() {};
   MemoryUnit(const MemoryUnit&) {};
+
 
  protected:
   // for event engine
@@ -210,8 +220,8 @@ class MemoryUnit : public MemoryInterface {
     return _priority;
   }
 
-  inline void set_prev(MemoryUnit *p) {
-    _prev_unit = p;
+  inline void add_prev(MemoryUnit *p) {
+    _prev_units.push_back(p);
   }
 
   inline void set_next(MemoryUnit *n) {
@@ -300,5 +310,7 @@ class MemoryPipeLine {
 
 typedef Singleton<PolicyFactory> PolicyFactoryObj;
 typedef Singleton <MemoryStats> MemoryStatsObj;
+
+/**************************************************************************/
 
 #endif

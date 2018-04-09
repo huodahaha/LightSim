@@ -41,7 +41,7 @@ enum EventType {
 
 // base class for callbackdata
 struct EventDataBase {
-  virtual ~EventDataBase();
+  virtual ~EventDataBase() {};
 };
 
 class EventHandler {

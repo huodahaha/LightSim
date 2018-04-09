@@ -88,26 +88,48 @@ void CacheSet::print_blocks(FILE* fs) {
 
 void MemoryUnit::proc(EventDataBase* data, EventType type) {
   MemoryEventData *memory_data = (MemoryEventData *)data;
-  MemoryEventData *d = new MemoryEventData(*memory_data);
 
   EventEngine *evnet_queue = EventEngineObj::get_instance();
 
   if (type == MemoryOnAccess) {
-    bool ret = try_access_memory(memory_data->addr, memory_data->PC);
-    if (ret == true) {
-      Event *e = new Event(MemoryOnArrive, _prev_unit, d);
-      evnet_queue->register_after_now(e, get_latency(), _prev_unit->get_priority());
+    auto iter = _pending_refs.find(memory_data->addr);
+    if (iter != _pending_refs.end()) {
+      return;
     }
     else {
-      Event *e = new Event(MemoryOnAccess, _prev_unit, d);
+      _pending_refs.insert(memory_data->addr);
+    }
+
+    bool ret = try_access_memory(memory_data->addr, memory_data->PC);
+    if (ret == true) {
+      for (auto prev_unit: _prev_units) {
+        MemoryEventData *d = new MemoryEventData(*memory_data);
+        Event *e = new Event(MemoryOnArrive, prev_unit, d);
+        evnet_queue->register_after_now(e, get_latency(), prev_unit->get_priority());
+      }
+    }
+    else {
+      MemoryEventData *d = new MemoryEventData(*memory_data);
+      Event *e = new Event(MemoryOnAccess, _next_unit, d);
       evnet_queue->register_after_now(e, 0, _next_unit->get_priority());
     }
   }
 
   else if (type == MemoryOnArrive) {
+    auto iter = _pending_refs.find(memory_data->addr);
+    if (iter == _pending_refs.end()) {
+      return;
+    }
+    else {
+      _pending_refs.erase(memory_data->addr);
+    }
+
     on_memory_arrive(memory_data->addr, memory_data->PC);
-    Event *e = new Event(MemoryOnArrive, _prev_unit, d);
-    evnet_queue->register_after_now(e, get_latency(), _prev_unit->get_priority());
+    for (auto prev_unit: _prev_units) {
+      MemoryEventData *d = new MemoryEventData(*memory_data);
+      Event *e = new Event(MemoryOnArrive, prev_unit, d);
+      evnet_queue->register_after_now(e, get_latency(), prev_unit->get_priority());
+    }
   }
 }
 
@@ -219,19 +241,13 @@ MemoryPipeLine::MemoryPipeLine(vector<CacheConfig> &configs, MemoryUnit *alu) {
   // highest proiority
   ctx.priority = 0;
 
-  MemoryUnit *cur = alu;
-
   
-  for (const auto &config: configs) {
-    ctx.priority++;
-    ctx.next_unit = NULL;
-    auto cache = new CacheUnit(config, ctx);
-    
-  }
 }
 
 MemoryPipeLine::~MemoryPipeLine() {
-  for (int i = 0; i < 
+  for (u32 i = 0; i < _units.size(); i++) {
+    delete _units[i];
+  }
 }
 
 bool MemoryPipeLine::try_access_memory(u64 addr, u64 PC) {
