@@ -1,10 +1,10 @@
 #ifndef INC_ALL_H
 #define INC_ALL_H
 
-#include <stdlib.h>
-#include <stdio.h>
+#include <cstdlib>
+#include <cstdio>
 
-#include <assert.h>
+#include <cassert>
 #include <vector>
 #include <queue>
 
