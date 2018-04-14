@@ -10,6 +10,7 @@ class CRRandomBlockFactory: public CacheBlockFactoryInterace {
     if (_pinstance) {
       delete _pinstance;
     }
+
   }
   static CacheBlockFactoryInterace* get_instance();
   CacheBlockBase* create(u64 addr, u64 tag, CacheSet *parent_set, u64 PC);
@@ -25,6 +26,7 @@ class CRRandomPolicy: public CRPolicyInterface {
     if (_pinstance) {
       delete _pinstance;
     }
+    _pinstance = nullptr;
   }
   static CRPolicyInterface* get_instance();
   void on_hit(CacheSet *line, u32 pos, u64 addr, u64 PC);

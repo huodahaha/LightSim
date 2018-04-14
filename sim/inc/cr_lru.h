@@ -8,6 +8,7 @@ class CR_LRU_BlockFactory: public CacheBlockFactoryInterace {
  public:
   ~CR_LRU_BlockFactory() {
     if (_pinstance) delete _pinstance;
+    _pinstance = nullptr;
   }
 
   static CacheBlockFactoryInterace* get_instance();
@@ -22,6 +23,7 @@ class CR_LRU_Policy: public CRPolicyInterface {
  public:
   ~CR_LRU_Policy() {
     if (_pinstance) delete _pinstance;
+    _pinstance = nullptr;
   }
 
   static CRPolicyInterface* get_instance();
