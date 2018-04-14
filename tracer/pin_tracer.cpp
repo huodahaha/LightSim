@@ -4,6 +4,10 @@
  *  and could serve as the starting point for developing your first PIN tool
  */
 
+/**
+ * This tracer is adapted and modified from the tracer of Champsim2
+ */
+
 #include "pin.H"
 #include <iostream>
 #include <fstream>
@@ -16,6 +20,9 @@
 
 typedef struct trace_instr_format {
     unsigned long long int ip;  // instruction pointer (program counter) value
+
+    unsigned int opcode; // opcode of the instruction
+    unsigned int thread_id; // system thread id
 
     unsigned char is_branch;    // is this branch
     unsigned char branch_taken; // if so, is this taken
@@ -313,6 +320,10 @@ VOID Instruction(INS ins, VOID *v)
 {
     // begin each instruction with this function
     UINT32 opcode = INS_Opcode(ins);
+    curr_instr.opcode = opcode;
+
+    curr_instr.thread_id = LEVEL_PINCLIENT::PIN_GetTid();
+
     INS_InsertCall(ins, IPOINT_BEFORE, (AFUNPTR)BeginInstruction, IARG_INST_PTR, IARG_UINT32, opcode, IARG_END);
 
     // instrument branch instructions

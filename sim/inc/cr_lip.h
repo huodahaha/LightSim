@@ -1,0 +1,8 @@
+#ifndef CACHE_REPLACEMENT_CR_LIP_H
+#define CACHE_REPLACEMENT_CR_LIP_H
+
+class cr_lip {
+
+};
+
+#endif //CACHE_REPLACEMENT_CR_LIP_H

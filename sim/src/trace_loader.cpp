@@ -4,7 +4,8 @@
 
 #include "trace_loader.h"
 
-TraceFormat::TraceFormat() : pc(0), is_branch(0), branch_taken(0) {
+TraceFormat::TraceFormat() : pc(0), opcode(0), thread_id(0),
+                             is_branch(0), branch_taken(0) {
   for (int i = 0; i < NUM_INSTR_DESTINATIONS; i++) {
     destination_registers[i] = 0;
     destination_memory[i] = 0;
@@ -19,8 +20,8 @@ TraceLoader::TraceLoader(string filename): _reach_end(true) {
   char gzip_command[512];
   sprintf(gzip_command, "gunzip -c %s", filename.c_str());
   _trace_file = popen(gzip_command, "r");
-  if (_trace_file == NULL) {
-    printf("Unable to read the trace file %s, exiting.", filename.c_str());
+  if (_trace_file == nullptr) {
+    SIMLOG(SIM_ERROR, "\nUnable to read the trace file %s, exiting.\n", filename.c_str());
     exit(-1);
   }
   _reach_end = false;

@@ -1,6 +1,6 @@
 #!/bin/bash
 
-#usage ./run_docker -o=ls_trace -t=100000 =b=ls
+#usage ./run_docker.sh -o=ls_trace -t=100000 -b=ls
 
 DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 

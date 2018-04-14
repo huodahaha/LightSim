@@ -1,5 +1,7 @@
 #include "gtest/gtest.h"
 #include "memory_helper.h"
+#include "trace_loader.h"
+#include <iostream>
 
 TEST(CheckBinaryFunctions, check_addr_valid) {
   EXPECT_EQ(check_addr_valid(1), true);
@@ -26,6 +28,53 @@ TEST(CheckBinaryFunctions, len_of_binary) {
 }
 
 
+class TestTraceLoader : public ::testing::Test {
+ protected:
+  TraceLoader* trace_loader;
+  void print_trace(const TraceFormat& trace) const {
+    printf("pc: %016llX\n", trace.pc);
+    printf("opcode: %08X\n", trace.opcode);
+    printf("thread_id: %u\n", trace.thread_id);
+    printf("is_branch: %u\n", trace.is_branch);
+    printf("branch_taken: %u\n", trace.branch_taken);
+  }
+
+  TestTraceLoader() {
+    std::cout << "Please enter a path to a single thread trace file" << std::endl;
+    string filename;
+    getline(std::cin, filename);
+    trace_loader = new TraceLoader(filename);
+  }
+
+  ~TestTraceLoader() {
+    delete trace_loader;
+  }
+
+};
+
+
+TEST_F(TestTraceLoader, get_traces) {
+  int count = 0;
+  unsigned char tid;
+  unsigned char last_tid;
+  bool initialized = false;
+  while (!trace_loader->is_end()) {
+    auto new_trace = trace_loader->next_instruction();
+    if (new_trace.first) {
+      if (count++ < 20) {
+        // printing the first 20 for check
+        print_trace(new_trace.second);
+      }
+      tid = new_trace.second.thread_id;
+      if (initialized) {
+        ASSERT_EQ(tid, last_tid);
+      }
+      last_tid = tid;
+      initialized = true;
+    }
+  }
+  EXPECT_EQ(initialized, true);
+}
 
 int main(int argc, char ** argv) {
   ::testing::InitGoogleTest(&argc, argv);

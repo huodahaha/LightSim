@@ -39,3 +39,6 @@ ENV
 
 # trace
 *.trace
+
+# Clion create file
+.idea/
