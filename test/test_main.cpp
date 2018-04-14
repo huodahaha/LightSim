@@ -33,7 +33,8 @@ class TestTraceLoader : public ::testing::Test {
   TraceLoader* trace_loader;
   void print_trace(const TraceFormat& trace) const {
     printf("pc: %016llX\n", trace.pc);
-    printf("opcode: %08X\n", trace.opcode);
+    printf("opcode: %08X :", trace.opcode);
+    printf("%s\n", trace.opcode_string);
     printf("thread_id: %u\n", trace.thread_id);
     printf("is_branch: %u\n", trace.is_branch);
     printf("branch_taken: %u\n", trace.branch_taken);
@@ -61,7 +62,7 @@ TEST_F(TestTraceLoader, get_traces) {
   while (!trace_loader->is_end()) {
     auto new_trace = trace_loader->next_instruction();
     if (new_trace.first) {
-      if (count++ < 20) {
+      if (count++ < 2000) {
         // printing the first 20 for check
         print_trace(new_trace.second);
       }

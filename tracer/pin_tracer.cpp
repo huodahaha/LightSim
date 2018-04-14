@@ -18,10 +18,14 @@
 #define NUM_INSTR_DESTINATIONS 2
 #define NUM_INSTR_SOURCES 4
 
+#define LONGEST_OP_CODE_STRING 16
+
 typedef struct trace_instr_format {
     unsigned long long int ip;  // instruction pointer (program counter) value
 
     unsigned int opcode; // opcode of the instruction
+    char opcode_string[LONGEST_OP_CODE_STRING];
+
     unsigned int thread_id; // system thread id
 
     unsigned char is_branch;    // is this branch
@@ -87,6 +91,7 @@ void BeginInstruction(VOID *ip, UINT32 op_code, VOID *opstring)
     instrCount++;
     //printf("[%p %u %s ", ip, opcode, (char*)opstring);
 
+
     if(instrCount > KnobSkipInstructions.Value())
     {
         tracing_on = true;
@@ -103,6 +108,9 @@ void BeginInstruction(VOID *ip, UINT32 op_code, VOID *opstring)
 
     curr_instr.is_branch = 0;
     curr_instr.branch_taken = 0;
+    curr_instr.opcode = op_code;
+
+    strcpy(curr_instr.opcode_string, OPCODE_StringShort(op_code).c_str());
 
     for(int i=0; i<NUM_INSTR_DESTINATIONS; i++)
     {
@@ -320,7 +328,6 @@ VOID Instruction(INS ins, VOID *v)
 {
     // begin each instruction with this function
     UINT32 opcode = INS_Opcode(ins);
-    curr_instr.opcode = opcode;
 
     curr_instr.thread_id = LEVEL_PINCLIENT::PIN_GetTid();
 

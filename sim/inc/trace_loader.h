@@ -5,6 +5,7 @@
 
 #define NUM_INSTR_DESTINATIONS 2
 #define NUM_INSTR_SOURCES 4
+#define LONGEST_OP_CODE_STRING 16
 
 using namespace std;
 
@@ -13,6 +14,7 @@ struct __attribute__ ((packed)) TraceFormat {
   // this way works
   unsigned long long pc;  // instruction pointer (program counter) value
   unsigned int opcode; // opcode of the instruction
+  char opcode_string[LONGEST_OP_CODE_STRING];
   unsigned int thread_id; // system thread id
   unsigned char is_branch;    // is this branch
   unsigned char branch_taken; // if so, is this taken
