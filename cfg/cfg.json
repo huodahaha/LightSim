@@ -1,0 +1,69 @@
+{
+	"nodes": [{
+			"type": "cpu",
+			"name": "cpu-core0"
+		},
+		{
+			"type": "cpu",
+			"name": "cpu-core1"
+		},
+		{
+			"type": "cache",
+			"name": "L1-cache-0",
+			"latency": 10,
+			"blocksize": 256,
+			"assoc": 4,
+			"sets": 128,
+			"policy": "LRU"
+		},
+		{
+			"type": "cache",
+			"name": "L1-cache-1",
+			"latency": 10,
+			"blocksize": 256,
+			"assoc": 4,
+			"sets": 128,
+			"policy": "LRU"
+		},
+		{
+			"type": "cache",
+			"name": "L2-cache-0",
+			"latency": 100,
+			"blocksize": 512,
+			"assoc": 4,
+			"sets": 256,
+			"policy": "LRU"
+		},
+		{
+			"type": "memory",
+			"name": "main-memory",
+			"latency": 1000
+		}
+	],
+	"networks": [{
+			"name": "connector0",
+			"input": "cpu-core0",
+			"output": "L1-cache-0"
+		},
+		{
+			"name": "connector1",
+			"input": "cpu-core1",
+			"output": "L1-cache-1"
+		},
+		{
+			"name": "connector2",
+			"input": "L1-cache-0",
+			"output": "L2-cache-0"
+		},
+		{
+			"name": "connector3",
+			"input": "L1-cache-1",
+			"output": "L2-cache-0"
+		},
+		{
+			"name": "connector4",
+			"input": "L2-cache-0",
+			"output": "main-memory"
+		}
+	]
+}
