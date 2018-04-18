@@ -3,13 +3,13 @@
 static const u8 TICK_FACTOR = 10;
 static const u8 TYPE_FACTOR = 6;
 
-void EventHandler::proc_event(Event *e) {
+void EventHandler::proc_event(u64 tick, Event *e) {
   assert(validate(e->type));
-  proc(e->callbackdata, e->type);
+  proc(tick, e->callbackdata, e->type);
 }
 
-void Event::execute() {
-  handler->proc_event(this);
+void Event::execute(u64 tick) {
+  handler->proc_event(tick, this);
 }
 
 void EventEngine::register_after_now(Event* e, u32 ticks, u32 priority) {
@@ -30,7 +30,7 @@ int EventEngine::loop() {
   auto e = iter->second;
   _tick = -1 * ((iter->first) >> TICK_FACTOR);
   _queue.erase(iter);
-  e->execute();
+  e->execute(_tick);
   delete e;
   return 1;
 }

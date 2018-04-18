@@ -96,7 +96,8 @@ void CacheSet::print_blocks(FILE* fs) {
   fprintf(fs, "\n");
 }
 
-void MemoryUnit::proc(EventDataBase* data, EventType type) {
+void MemoryUnit::proc(u64 tick, EventDataBase* data, EventType type) {
+  (void)tick;
   MemoryEventData *memory_data = (MemoryEventData *)data;
 
   EventEngine *evnet_queue = EventEngineObj::get_instance();

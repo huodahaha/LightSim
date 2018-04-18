@@ -6,7 +6,6 @@
 #include "inc_all.h"
 #include "event_engine.h"
 #include "memory_helper.h"
-#include "event_engine.h"
 
 using namespace std;
 
@@ -208,7 +207,7 @@ class MemoryUnit : public MemoryInterface {
   u32                     _latency;
   u8                      _priority;
 
-  void proc(EventDataBase* data, EventType type);
+  void proc(u64 tick, EventDataBase* data, EventType type);
   bool validate(EventType type);
 
  public:

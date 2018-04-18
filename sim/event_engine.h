@@ -46,12 +46,12 @@ struct EventDataBase {
 
 class EventHandler {
  protected:
-  virtual void proc(EventDataBase* data, EventType type) = 0;
+  virtual void proc(u64 tick, EventDataBase* data, EventType type) = 0;
   // validate if this hander can handle the comming event
   virtual bool validate(EventType type) = 0;
 
  public:
-  void proc_event(Event *e);
+  void proc_event(u64 tick, Event *e);
 };
 
 struct Event {
@@ -66,7 +66,7 @@ struct Event {
     delete callbackdata;
   }
 
-  void execute();
+  void execute(u64 tick);
 };
 
 

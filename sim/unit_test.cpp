@@ -28,6 +28,41 @@ void test_logger() {
   SIMLOG(SIM_ERROR, "testmessage + %s\n", "msg");
 }
 
+void test_event_engine() {
+  class TestHandler: public EventHandler {
+   private:
+    u64 t;
+    u32 ttl;
+
+   protected:
+    bool validate(EventType t) {
+      (void)t;
+      return true;
+    }
+
+    void proc(u64 tick, EventDataBase* data, EventType type) {
+      assert(tick == t);
+      ttl--;
+      if (ttl == 0)
+        return;
+      EventEngine *evnet_queue = EventEngineObj::get_instance();
+      EventDataBase *d = new EventDataBase();
+      Event *e = new Event(MemoryOnArrive, this, d);
+      evnet_queue->register_after_now(e, 5, 5);
+      t += 5;
+    }
+
+   public:
+    TestHandler() : t(0), ttl(100) {};
+  };
+
+  EventEngine* engine = new EventEngine();
+  EventHandler* handler = new TestHandler();
+  EventDataBase *d = new EventDataBase();
+  Event *e = new Event(MemoryOnArrive, handler, d);
+  engine->register_after_now(e, 5, 0);
+}
+
 //void test_cache_unit() {
   //u32 ways = 8;
   //u32 blk_size = 128;
@@ -173,5 +208,6 @@ void test_logger() {
 int main() {
   test_valid_addr();
   test_logger();
+  test_event_engine();
   //test_trace();
 }
