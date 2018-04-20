@@ -82,7 +82,7 @@ class EventEngine {
   EventEngine(EventEngine &&) = delete;
 
   void register_after_now(Event* e, u32 ticks, u32 priority);
-  int loop();
+  s32 loop();
 };
 
 typedef Singleton <EventEngine> EventEngineObj;

@@ -60,7 +60,58 @@ void test_event_engine() {
   EventHandler* handler = new TestHandler();
   EventDataBase *d = new EventDataBase();
   Event *e = new Event(MemoryOnArrive, handler, d);
-  engine->register_after_now(e, 5, 0);
+  engine->register_after_now(e, 0, 0);
+
+  while (true) {
+    auto ret = engine->loop();
+    if (ret == 0) {
+      break;
+    } 
+  }
+}
+
+void test_lru_set() {
+  u32 ways = 8;
+  u32 blk_size = 128;
+  u32 sets = 32;
+  bool ret;
+
+  auto factory = PolicyFactoryObj::get_instance();
+  CRPolicyInterface* lru = factory->create_policy(LRU_POLICY);
+  CacheSet *line = new CacheSet(ways, blk_size, sets, lru);
+
+  u64 addr = 1 << 16;
+  MemoryAccessInfo info(addr, 0);
+  ret = line->try_access_memory(info);
+  line->on_memory_arrive(info);
+  assert(ret == false);
+
+  for (u64 shift = 0; shift < 128; shift += 4) {
+    MemoryAccessInfo info(addr + shift, 0);
+    ret = line->try_access_memory(info);
+    assert(ret);
+  }
+
+  for (u64 shift = 0; shift < blk_size * ways; shift += blk_size) {
+    MemoryAccessInfo info(addr + shift, 0);
+    line->on_memory_arrive(info);
+  }
+
+  auto blocks = line->get_all_blocks();
+  for (auto block : blocks) {
+    (void)block;
+    assert(block != NULL);
+  }
+
+  auto blocks_copy(blocks);
+  u64 rand_addr = rand(); 
+  info = MemoryAccessInfo(rand_addr, 0);
+  line->on_memory_arrive(info);
+  blocks = line->get_all_blocks();
+
+  for (u32 idx = 1; idx < ways; idx++) {
+    assert(blocks[idx] != blocks_copy[idx]);
+  }
 }
 
 //void test_cache_unit() {
@@ -72,47 +123,6 @@ void test_event_engine() {
   //auto factory = PolicyFactoryObj::get_instance();
   //auto lru = factory->get_policy(LRU_POLICY);
   //auto random = factory->get_policy(RANDOM_POLICY);
-
-  //// test for lru + sequence
-  //{
-    //fprintf(stdout, "\n\ntest for LRU + sequence reference every 4 bytes\n");
-    //auto cache = new CacheUnit(ways, blk_size, sets, lru);
-
-    //for (s64 addr = 0; addr < (1 << 8); addr += 4) {
-      //u64 PC = 0;       // dummy PC
-      //auto ret = cache->try_access_memory(addr, PC);
-      //if (ret == false) {
-        //// cache miss
-        //ret = main__memory->try_access_memory(addr, PC);
-        //assert(ret);
-        //cache->on_memory_arrive(addr, PC);
-      //}
-
-    //}
-    //display->display(stdout);
-    //display->clear();
-    //delete cache;
-  //}
-
-  //// test for lru + sequence
-  //{
-    //fprintf(stdout, "\n\ntest for LRU + sequence every 16 bytes\n\n");
-    //auto cache = new CacheUnit(ways, blk_size, sets, lru);
-
-    //for (u64 addr = 0; addr < (1 << 16); addr += 16) {
-      //u64 PC = 0;       // dummy PC
-      //auto ret = cache->try_access_memory(addr, PC);
-      //if (ret == false) {
-        //// cache miss
-        //ret = main__memory->try_access_memory(addr, PC);
-        //assert(ret);
-        //cache->on_memory_arrive(addr, PC);
-      //}
-    //}
-    //display->display(stdout);
-    //display->clear();
-    //delete cache;
-  //}
 
   //// test for random
   //{
@@ -209,5 +219,5 @@ int main() {
   test_valid_addr();
   test_logger();
   test_event_engine();
-  //test_trace();
+  test_lru_set();
 }

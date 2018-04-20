@@ -21,7 +21,7 @@ void EventEngine::register_after_now(Event* e, u32 ticks, u32 priority) {
   _queue.insert({pv, e});
 }
 
-int EventEngine::loop() {
+s32 EventEngine::loop() {
   if (_queue.size() == 0) {
     return 0;
   }
