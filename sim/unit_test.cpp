@@ -3,6 +3,7 @@
 
 #include <iostream>
 #include <fstream>
+#include <time.h>
 
 void test_valid_addr() {
   assert(check_addr_valid(1));
@@ -92,7 +93,10 @@ void test_lru_set() {
     assert(ret);
   }
 
-  for (u64 shift = 0; shift < blk_size * ways; shift += blk_size) {
+  vector<u64> addrs;
+  for (u64 idx = 0; idx < ways; idx++) {
+    u64 shift = idx << 40;
+    addrs.push_back(addr + shift);
     MemoryAccessInfo info(addr + shift, 0);
     line->on_memory_arrive(info);
   }
@@ -103,121 +107,65 @@ void test_lru_set() {
     assert(block != NULL);
   }
 
-  auto blocks_copy(blocks);
-  u64 rand_addr = rand(); 
-  info = MemoryAccessInfo(rand_addr, 0);
-  line->on_memory_arrive(info);
-  blocks = line->get_all_blocks();
+  for (u32 cnt = 0; cnt < 20; cnt++) {
+    u64 addr = addrs[(rand() % ways)];
+    MemoryAccessInfo info(addr, 0);
+    auto old_blocks = line->get_all_blocks();
+    ret = line->try_access_memory(info);
+    assert(ret == true);
 
-  for (u32 idx = 1; idx < ways; idx++) {
-    assert(blocks[idx] != blocks_copy[idx]);
+    // check LRU
+    auto new_blocks = line->get_all_blocks();
+    for (u32 idx = 0; idx < ways ; idx++) {
+      if (old_blocks[idx]->get_addr() == addr) {
+        for (idx = idx + 1; idx < ways; idx++) {
+          assert(new_blocks[idx]->get_addr() == old_blocks[idx]->get_addr());
+        }
+        break;
+      }
+      assert(new_blocks[idx + 1]->get_addr() == old_blocks[idx]->get_addr());
+    }
   }
 }
 
-//void test_cache_unit() {
-  //u32 ways = 8;
-  //u32 blk_size = 128;
-  //u64 sets = 4;
+void test_random_set() {
+  u32 ways = 8;
+  u32 blk_size = 128;
+  u32 sets = 32;
 
-  //auto display = MemoryStatsObj::get_instance();
-  //auto factory = PolicyFactoryObj::get_instance();
-  //auto lru = factory->get_policy(LRU_POLICY);
-  //auto random = factory->get_policy(RANDOM_POLICY);
+  auto factory = PolicyFactoryObj::get_instance();
+  CRPolicyInterface* lru = factory->create_policy(RANDOM_POLICY);
+  CacheSet *line = new CacheSet(ways, blk_size, sets, lru);
 
-  //// test for random
-  //{
-    //fprintf(stdout, "\n\ntest for RANDOM + sequence every 16 bytes\n\n");
-    //auto cache = new CacheUnit(ways, blk_size, sets, random);
+  u64 addr = 1 << 16;
+  for (u64 shift = 0; shift < blk_size * ways; shift += blk_size) {
+    MemoryAccessInfo info(addr + shift, 0);
+    line->on_memory_arrive(info);
+  }
 
-    //for (u64 addr = 0; addr < (1 << 16); addr += 16) {
-      //u64 PC = 0;       // dummy PC
-      //auto ret = cache->try_access_memory(addr, PC);
-      //if (ret == false) {
-        //// cache miss
-        //ret = main__memory->try_access_memory(addr, PC);
-        //assert(ret);
-        //cache->on_memory_arrive(addr, PC);
-      //}
-    //}
+  auto old_blocks = line->get_all_blocks();
+  for (auto block : old_blocks) {
+    (void)block;
+    assert(block != NULL);
+  }
 
-    //display->display(stdout);
-    //display->clear();
-    //delete cache;
-  //}
-
-//}
-
-//void test_trace() {
-  //u32 ways = 4;
-  //u32 blk_size = 64;
-  //u64 sets = 128;
-
-  //auto main__memory = MainMemoryObj::get_instance();
-  //auto display = MemoryStatsObj::get_instance();
-  //auto factory = PolicyFactoryObj::get_instance();
-  //auto lru = factory->get_policy(LRU_POLICY);
-  //auto random = factory->get_policy(RANDOM_POLICY);
-
-  //// test for lru + sequence
-  //{
-    //fprintf(stdout, "\n\ntest for LRU + test trace\n");
-    //auto cache = new CacheUnit(ways, blk_size, sets, lru);
-
-    //const char *trace = "test_trace";
-    //// test for test_trace
-    //ifstream infile(trace, fstream::in);
-
-    //u64 addr;
-    //u64 PC = 0;       // dummy PC
-    //while (!infile.eof()) {
-      //infile >> hex >> addr;
-      //auto ret = cache->try_access_memory(addr, PC);
-      //if (ret == false) {
-        //// cache miss
-        //ret = main__memory->try_access_memory(addr, PC);
-        //assert(ret);
-        //cache->on_memory_arrive(addr, PC);
-      //}
-    //}
-
-    //display->display(stdout);
-    //display->clear();
-    //delete cache;
-  //}
-
-  //// test for random + sequence
-  //{
-    //fprintf(stdout, "\n\ntest for random + test trace\n");
-    //auto cache = new CacheUnit(ways, blk_size, sets, random);
-
-    //const char *trace = "test_trace";
-    //// test for test_trace
-    //ifstream infile(trace, fstream::in);
-
-    //u64 addr;
-    //u64 PC = 0;       // dummy PC
-    //while (!infile.eof()) {
-      //infile >> hex >> addr;
-      //auto ret = cache->try_access_memory(addr, PC);
-      //if (ret == false) {
-        //// cache miss
-        //ret = main__memory->try_access_memory(addr, PC);
-        //assert(ret);
-        //cache->on_memory_arrive(addr, PC);
-      //}
-    //}
-
-    //display->display(stdout);
-    //display->clear();
-    //delete cache;
-  //}
-
-//}
+  // random access
+  for (u32 cnt = 0; cnt < 100* ways; cnt++) {
+    MemoryAccessInfo info(rand(), 0);
+    line->on_memory_arrive(info);
+  }
+  auto new_blocks = line->get_all_blocks();
+  for (u32 idx = 0; idx < ways; idx++) {
+    assert(old_blocks[idx]->get_addr() != new_blocks[idx]->get_addr());
+  }
+}
 
 
 int main() {
+  srand(time(NULL));
   test_valid_addr();
   test_logger();
   test_event_engine();
   test_lru_set();
+  test_random_set();
 }

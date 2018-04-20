@@ -7,7 +7,7 @@ class CRRandomBlockFactory: public CacheBlockFactoryInterace {
 
 class CRRandomPolicy: public CRPolicyInterface {
  public:
-  CRRandomPolicy(CacheBlockFactoryInterace* factory): CRPolicyInterface(factory) {};
+  CRRandomPolicy(CacheBlockFactoryInterace* factory);
   void on_hit(CacheSet *line, u32 pos, const MemoryAccessInfo &info);
   void on_arrive(CacheSet *line, u64 tag, const MemoryAccessInfo &info);
 };
