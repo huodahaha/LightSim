@@ -1,76 +1,20 @@
-#include <iostream>
-#include <string>
-#include <map>
-#include <vector>
+#include "cfg_loader.h"
 
-#include "include/rapidjson/document.h"
-#include "include/rapidjson/writer.h"
-#include "include/rapidjson/filereadstream.h"
-#include "include/rapidjson/stringbuffer.h"
+#include "rapidjson/document.h"
+#include "rapidjson/writer.h"
+#include "rapidjson/filereadstream.h"
+#include "rapidjson/stringbuffer.h"
 
 using namespace rapidjson;
-using namespace std;
 
-struct BaseNodeCfg;
-struct CacheNodeCfg;
-struct MemoryNodeCfg;
-struct NetworkCfg;
-
-enum CfgNodeType {
-  CpuNode,
-  CacheNode,
-  MemoryNode
-};
-
-struct BaseNodeCfg {
-  CfgNodeType       type;
-  string            name;
-  BaseNodeCfg*      next_node;
-
-  BaseNodeCfg(CfgNodeType type_, string name_) : type(type_), name(name_), next_node(NULL){};
-};
-
-struct NetworkCfg {
-  string            name;
-  string            input;
-  string            output;
-
-  NetworkCfg(string name_, string input_, string output_) 
-      : name(name_), input(input_), output(output_){};
-};
-
-struct CpuNodeCfg : public BaseNodeCfg {
-  CpuNodeCfg(CfgNodeType type_, string name_) : BaseNodeCfg(type_, name_){};
-};
-
-struct CacheNodeCfg: public BaseNodeCfg {
-  int               latency;
-  int               blocksize;
-  int               assoc;
-  int               sets;
-  string            cr_policy;
-
-  CacheNodeCfg(CfgNodeType type_, string name_, int latency_, int blocksize_,
-               int assoc_, int sets_, string policy) : BaseNodeCfg(type_, name_),
-               latency(latency_), blocksize(blocksize_), assoc(assoc_), 
-               sets(sets_), cr_policy(policy) {};
-};
-
-struct MemoryNodeCfg: public BaseNodeCfg {
-  int               latency;
-
-  MemoryNodeCfg(CfgNodeType type_, string name_, int latency_) : 
-              BaseNodeCfg(type_, name_), latency(latency_){};
-};
-
-void check_key(Value &value, const char *key, const char *node_name) {
+static void check_key(Value &value, const char *key, const char *node_name) {
   if (!value.HasMember(key)) {
     fprintf(stderr, "<%s> has to provide %s filed\n", node_name, key);
     exit(1);
   }
 }
 
-BaseNodeCfg* parse_node(Value &node) {
+static BaseNodeCfg* parse_node(Value &node) {
   BaseNodeCfg *node_cfg = NULL;
 
   check_key(node, "type", "unknown node");
@@ -110,7 +54,7 @@ BaseNodeCfg* parse_node(Value &node) {
   return node_cfg;
 }
 
-NetworkCfg* parse_network(Value &node) {
+static NetworkCfg* parse_network(Value &node) {
   NetworkCfg *network_cfg = NULL;
 
   check_key(node, "name", "unknown node");
@@ -125,7 +69,7 @@ NetworkCfg* parse_network(Value &node) {
   return network_cfg;
 }
 
-void parse_nodes(Value &nodes, map<string, BaseNodeCfg*> &node_map) {
+static void parse_nodes(Value &nodes, map<string, BaseNodeCfg*> &node_map) {
   // there should be an unique main memory node
   vector<BaseNodeCfg*> main_memory;
 
@@ -152,7 +96,7 @@ void parse_nodes(Value &nodes, map<string, BaseNodeCfg*> &node_map) {
   }
 }
 
-void parse_networks(Value &nodes, map<string, NetworkCfg*> &network_map) {
+static void parse_networks(Value &nodes, map<string, NetworkCfg*> &network_map) {
   for (auto& v : nodes.GetArray()) {
     NetworkCfg *network_cfg = parse_network(v);
     assert(network_cfg);
@@ -167,7 +111,7 @@ void parse_networks(Value &nodes, map<string, NetworkCfg*> &network_map) {
   }
 }
 
-void check_name_exist(map<string, BaseNodeCfg*> &node_map, string &node_name, string &network_name) {
+static void check_name_exist(map<string, BaseNodeCfg*> &node_map, string &node_name, string &network_name) {
     auto iter = node_map.find(node_name);
     if (iter == node_map.end()) {
       fprintf(stderr, "<network: %s> cannot find node with name <%s>\n",
@@ -176,7 +120,7 @@ void check_name_exist(map<string, BaseNodeCfg*> &node_map, string &node_name, st
     } 
 }
 
-void assamble(map<string, NetworkCfg*> &network_map, map<string, BaseNodeCfg*> &node_map) {
+static void assamble(map<string, NetworkCfg*> &network_map, map<string, BaseNodeCfg*> &node_map) {
   for (auto entry: network_map) {
     auto network = entry.second;
 
@@ -189,7 +133,7 @@ void assamble(map<string, NetworkCfg*> &network_map, map<string, BaseNodeCfg*> &
 
 // after assamling ,the node wuold form a tree with memory node as root and 
 // cpu node as leaf
-bool check_node(BaseNodeCfg *node) {
+static bool check_node(BaseNodeCfg *node) {
   if (node == NULL) {
     fprintf(stderr, "node <%s> don't have a proceeding node,", node->name.c_str());
     fprintf(stderr, "every node should end up with a memory node\n");
@@ -203,7 +147,7 @@ bool check_node(BaseNodeCfg *node) {
   } 
 }
 
-bool check_tree(map<string, BaseNodeCfg*> node_map) {
+static bool check_tree(map<string, BaseNodeCfg*> node_map) {
   for (auto entry: node_map) {
     auto node = entry.second;
     if (node->type == CpuNode) {
@@ -231,8 +175,17 @@ void delete_map(map<T1, T2> m) {
   }
 }  
 
-const map<string, BaseNodeCfg*> parse_cfg(const char* filename) {
-  FILE* fp = fopen(filename, "rb"); 
+void SimCfgLoader::delete_nodes() {
+  delete_map<>(_networks_map);
+  delete_map<>(_nodes_map);
+}
+
+SimCfgLoader::~SimCfgLoader() {
+  delete_nodes();
+}
+
+void SimCfgLoader::parse(string filename) {
+  FILE* fp = fopen(filename.c_str(), "rb"); 
   char readBuffer[65536];
   FileReadStream is(fp, readBuffer, sizeof(readBuffer));
   Document d;
@@ -240,7 +193,7 @@ const map<string, BaseNodeCfg*> parse_cfg(const char* filename) {
   fclose(fp);
 
   if (!d.IsObject()) {
-    fprintf(stderr, "%s parse failure, may due to bad format\n", filename);
+    fprintf(stderr, "%s parse failure, may due to bad format\n", filename.c_str());
     exit(1);
   }
 
@@ -259,24 +212,11 @@ const map<string, BaseNodeCfg*> parse_cfg(const char* filename) {
     fprintf(stderr, "\"networks\" cfg should be an array\n");
     exit(1);
   }
-  
-  map<string, BaseNodeCfg*> nodes_map;
-  map<string, NetworkCfg*> networks_map;
 
-  parse_nodes(nodes, nodes_map);
-  parse_networks(networks, networks_map);
+  delete_nodes();
+  parse_nodes(nodes, _nodes_map);
+  parse_networks(networks, _networks_map);
 
-  assamble(networks_map, nodes_map);
-  assert(check_tree(nodes_map));
-
-  delete_map<>(networks_map);
-
-  return nodes_map;
-}
-
-int main() {
-  auto nodes = parse_cfg("./cfg.json");
-  delete_map<>(nodes);
-
-  return 0;
+  assamble(_networks_map, _nodes_map);
+  assert(check_tree(_nodes_map));
 }

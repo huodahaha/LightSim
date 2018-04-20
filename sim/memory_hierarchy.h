@@ -315,7 +315,7 @@ class MemoryPipeLine {
 /********************************  Singleton ******************************/
 
 typedef Singleton<PolicyFactory> PolicyFactoryObj;
-typedef Singleton <MemoryStats> MemoryStatsObj;
+typedef Singleton<MemoryStats> MemoryStatsObj;
 
 /**************************************************************************/
 
