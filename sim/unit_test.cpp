@@ -1,5 +1,6 @@
 #include "memory_helper.h"
 #include "memory_hierarchy.h"
+#include "trace_loader.h"
 
 #include <iostream>
 #include <fstream>
@@ -129,7 +130,7 @@ void test_lru_set() {
 }
 
 void test_random_set() {
-  u32 ways = 8;
+  u32 ways = 4;
   u32 blk_size = 128;
   u32 sets = 32;
 
@@ -150,7 +151,7 @@ void test_random_set() {
   }
 
   // random access
-  for (u32 cnt = 0; cnt < 100* ways; cnt++) {
+  for (u32 cnt = 0; cnt < 200 * ways; cnt++) {
     MemoryAccessInfo info(rand(), 0);
     line->on_memory_arrive(info);
   }
@@ -160,6 +161,14 @@ void test_random_set() {
   }
 }
 
+void test_trace_loader() {
+  TraceLoader loader("../traces/ls_trace.trace.gz");
+  TraceFormat trace;
+
+  while (loader.next_instruction(trace)) {
+    // do something
+  }
+}
 
 int main() {
   srand(time(NULL));
@@ -168,4 +177,5 @@ int main() {
   test_event_engine();
   test_lru_set();
   test_random_set();
+  test_trace_loader();
 }
