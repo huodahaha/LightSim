@@ -27,6 +27,7 @@ class MemoryStats;
 enum CR_POLICY {
   LRU_POLICY,
   RANDOM_POLICY,
+  LIP_POLICY,
   POLICY_CNT
 };
 /**************************************************************************/
