@@ -6,6 +6,7 @@
 #include <iostream>
 #include <fstream>
 #include <time.h>
+#include <cmath>
 
 void test_valid_addr() {
   assert(check_addr_valid(1));
@@ -165,9 +166,16 @@ void test_random_set() {
 void test_trace_loader() {
   TraceLoader loader("../traces/ls_trace.trace.gz");
   TraceFormat trace;
-
+  TraceFormat last_trace;
+  loader.next_instruction(last_trace);
   while (loader.next_instruction(trace)) {
-    // do something
+    if (! (last_trace.is_branch && last_trace.branch_taken)) {
+      if ((trace.pc - last_trace.pc) >= 16) {
+        assert(strcmp(last_trace.opcode_string, "RET_NEAR") ||
+               strcmp(last_trace.opcode_string, "CALL_NEAR"));
+      }
+    }
+    last_trace = trace;
   }
 }
 
