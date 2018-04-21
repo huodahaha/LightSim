@@ -302,6 +302,10 @@ void test_pipeline() {
   delete memory;
   delete cpu0;
   delete cpu1;
+
+  // print stats
+  auto stats_manager = MemoryStatsManagerObj::get_instance();
+  stats_manager->display_all(stdout);
 }
 
 int main() {

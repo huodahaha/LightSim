@@ -299,8 +299,20 @@ class MemoryStats {
     _hits++;
   }
 
-  void display(FILE *stream);
+  void display(FILE *stream, const string &tag);
   void clear();
+};
+
+class MemoryStatsManager {
+ private:
+  map<string, MemoryStats*>     _stats_handlers;
+
+ public:
+  MemoryStatsManager() {};
+  ~MemoryStatsManager();
+
+  MemoryStats* get_stats_handler(const string &tag);
+  void display_all(FILE *stream);
 };
 
 class CpuConnector: public MemoryUnit {
@@ -337,7 +349,7 @@ class MemoryPipeLine {
 /********************************  Singleton ******************************/
 
 typedef Singleton<PolicyFactory> PolicyFactoryObj;
-typedef Singleton<MemoryStats> MemoryStatsObj;
+typedef Singleton<MemoryStatsManager> MemoryStatsManagerObj;
 
 /**************************************************************************/
 

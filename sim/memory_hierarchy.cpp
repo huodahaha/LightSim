@@ -219,7 +219,8 @@ bool CacheUnit::try_access_memory(const MemoryAccessInfo &info) {
   assert(set_no < _cache_sets.size());
   auto cache_set = _cache_sets[set_no];
   auto ret = cache_set->try_access_memory(info);
-  auto stats = MemoryStatsObj::get_instance();
+  auto stats_manager = MemoryStatsManagerObj::get_instance();
+  auto stats = stats_manager->get_stats_handler(get_tag());
   if (ret == true) {
     stats->increment_hit();
   }
@@ -248,14 +249,37 @@ void MainMemory::on_memory_arrive(const MemoryAccessInfo &info) {
   (void)info;
 }
 
-void MemoryStats::display(FILE *stream) {
+void MemoryStats::display(FILE *stream, const string &tag) {
+  fprintf(stream, "cache tag: %s\n", tag.c_str());
   fprintf(stream, "cache hits %llu\n", _hits);
-  fprintf(stream, "cache misses %llu\n", _misses);
+  fprintf(stream, "cache misses %llu\n\n", _misses);
 }
 
 void MemoryStats::clear() {
   _hits = 0;
   _misses = 0;
+}
+
+MemoryStatsManager::~MemoryStatsManager() {
+  for (auto &entry: _stats_handlers) {
+    delete entry.second;
+  }
+}
+
+MemoryStats* MemoryStatsManager::get_stats_handler(const string &tag) {
+  auto iter = _stats_handlers.find(tag);
+  if (iter == _stats_handlers.end()) {
+    auto handler = new MemoryStats();
+    _stats_handlers[tag] = handler;
+  }
+
+  return _stats_handlers[tag];
+}
+
+void MemoryStatsManager::display_all(FILE *stream) {
+  for (auto &entry: _stats_handlers) {
+    entry.second->display(stream, entry.first);
+  }
 }
 
 bool CpuConnector::try_access_memory(const MemoryAccessInfo &info) {
