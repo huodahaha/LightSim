@@ -7,6 +7,7 @@
 #include <fstream>
 #include <time.h>
 #include <cmath>
+#include <cstring>
 
 void test_valid_addr() {
   assert(check_addr_valid(1));
@@ -163,16 +164,21 @@ void test_random_set() {
   //}
 }
 
+bool prefix(const char * str, const char * prefix) {
+  return strncmp(str, prefix, strlen(prefix)) == 0;
+}
+
 void test_trace_loader() {
   TraceLoader loader("../traces/ls_trace.trace.gz");
   TraceFormat trace;
   TraceFormat last_trace;
   loader.next_instruction(last_trace);
   while (loader.next_instruction(trace)) {
-    if (! (last_trace.is_branch && last_trace.branch_taken)) {
+    if (! (last_trace.is_branch && last_trace.branch_taken) &&
+           last_trace.thread_id == trace.thread_id) {
       if ((trace.pc - last_trace.pc) >= 16) {
-        assert(strcmp(last_trace.opcode_string, "RET_NEAR") ||
-               strcmp(last_trace.opcode_string, "CALL_NEAR"));
+        assert(prefix(last_trace.opcode_string, "RET_NEAR") ||
+               prefix(last_trace.opcode_string, "CALL_NEAR"));
       }
     }
     last_trace = trace;
