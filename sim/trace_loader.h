@@ -2,7 +2,7 @@
 #define CACHE_REPLACEMENT_TRACE_LOADER_H
 
 #include "inc_all.h"
-
+#include "util.h"
 #define NUM_INSTR_DESTINATIONS 2
 #define NUM_INSTR_SOURCES 4
 #define LONGEST_OP_CODE_STRING 16
@@ -45,11 +45,26 @@ class TraceLoader {
   TraceLoader() {}
 
  public:
-  TraceLoader(string filename);
+  TraceLoader(const string &filename);
   ~TraceLoader();
 
   size_t next_instruction(TraceFormat &trace);
 };
 
 
+class MultiTraceLoader {
+ private:
+  vector<TraceLoader *> _trace_loaders;
+
+ public:
+  MultiTraceLoader(): _trace_loaders(0) {};
+  ~MultiTraceLoader();
+  void adding_trace(const string &filename);
+  size_t get_trace_num() const;
+  size_t next_instruction(u32 trace_id, TraceFormat &trace);
+};
+
+
+//class TraceLoader
+typedef Singleton<MultiTraceLoader> MultiTraceLoaderObj;
 #endif //CACHE_REPLACEMENT_TRACE_LOADER_H

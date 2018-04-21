@@ -177,12 +177,13 @@ void test_trace_loader() {
     if (! (last_trace.is_branch && last_trace.branch_taken) &&
            last_trace.thread_id == trace.thread_id) {
       if ((trace.pc - last_trace.pc) >= 16) {
-        assert(prefix(last_trace.opcode_string, "RET_NEAR") ||
-               prefix(last_trace.opcode_string, "CALL_NEAR"));
+        assert(prefix(last_trace.opcode_string, "RET") ||
+               prefix(last_trace.opcode_string, "CALL"));
       }
     }
     last_trace = trace;
   }
+
 }
 
 void test_cfg_loader() {
