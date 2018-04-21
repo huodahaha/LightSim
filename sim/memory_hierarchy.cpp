@@ -99,11 +99,6 @@ void CacheSet::print_blocks(FILE* fs) {
 void MemoryUnit::proc(u64 tick, EventDataBase* data, EventType type) {
   MemoryEventData *memory_data = (MemoryEventData *)data;
 
-#ifdef DEBUG
-  SIMLOG(SIM_INFO, "handler: %s, type: %s\ttick: %lld\taddr: %llu\n", 
-         get_tag().c_str(), event_type_to_string(type).c_str(), tick, memory_data->addr);
-#endif
-
   EventEngine *evnet_queue = EventEngineObj::get_instance();
 
   if (type == MemoryOnAccess) {
@@ -114,6 +109,11 @@ void MemoryUnit::proc(u64 tick, EventDataBase* data, EventType type) {
     else {
       _pending_refs.insert(memory_data->addr);
     }
+
+#ifdef DEBUG
+  SIMLOG(SIM_INFO, "handler: %s, type: %s\ttick: %lld\taddr: %llu\n", 
+         get_tag().c_str(), event_type_to_string(type).c_str(), tick, memory_data->addr);
+#endif
 
     MemoryAccessInfo access_info(*memory_data);
     bool ret = try_access_memory(access_info);
@@ -139,6 +139,11 @@ void MemoryUnit::proc(u64 tick, EventDataBase* data, EventType type) {
     else {
       _pending_refs.erase(memory_data->addr);
     }
+
+#ifdef DEBUG
+  SIMLOG(SIM_INFO, "handler: %s, type: %s\ttick: %lld\taddr: %llu\n", 
+         get_tag().c_str(), event_type_to_string(type).c_str(), tick, memory_data->addr);
+#endif
 
     MemoryAccessInfo arrive_info(*memory_data);
     on_memory_arrive(arrive_info);

@@ -26,6 +26,7 @@ class EventEngine;
 
 // ranked by priority
 enum EventType {
+  ReserveEventType,
   // memory event type
   MemoryOnAccess,
   MemoryOnArrive,
