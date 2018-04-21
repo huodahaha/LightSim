@@ -65,9 +65,9 @@ class SequentialCPU : public EventHandler {
   void proc(u64 tick, EventDataBase* data, EventType type);
 
  public:
-  // also initialize _memomry_connecter
-//  SequentialCPU(size_t id, MultiTraceLoaderObj multi_trace_loader):
-//      _id(id), _multi_trace_loader(multi_trace_loader.get_instance()) {}
+  SequentialCPU(const string &tag, size_t id, MultiTraceLoaderObj multi_trace_loader):
+      EventHandler(tag),
+      _id(id), _multi_trace_loader(multi_trace_loader.get_instance()) {}
 };
 
 

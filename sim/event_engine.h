@@ -61,7 +61,7 @@ class EventHandler {
   virtual bool validate(EventType type) = 0;
 
  public:
-  void attach_tag(const string &tag);
+  EventHandler(const string &tag) : _tag(tag) {};
   void proc_event(u64 tick, Event *e);
   inline string get_tag() {
     return _tag;

@@ -19,10 +19,6 @@ string event_type_to_string(EventType type) {
   return type_name[type];
 }
 
-void EventHandler::attach_tag(const string &tag) {
-  _tag = tag;
-}
-
 void EventHandler::proc_event(u64 tick, Event *e) {
   assert(validate(e->type));
   proc(tick, e->callbackdata, e->type);
