@@ -159,8 +159,8 @@ bool MemoryUnit::validate(EventType type) {
   return ((type == MemoryOnAccess) || (type == MemoryOnArrive));
 }
 
-CacheUnit::CacheUnit(const MemoryConfig &config)
-  : MemoryUnit(config.latency, config.priority), 
+CacheUnit::CacheUnit(const string &tag, const MemoryConfig &config)
+  : MemoryUnit(tag, config.latency, config.priority), 
     _ways(config.ways), _blk_size(config.blk_size), _sets(config.sets){
   auto factory = PolicyFactoryObj::get_instance();
   _cr_policy = factory->create_policy(config.policy_type);
@@ -236,8 +236,8 @@ void CacheUnit::on_memory_arrive(const MemoryAccessInfo &info) {
   cache_set->on_memory_arrive(info);
 }
 
-MainMemory::MainMemory(const MemoryConfig &config) :
-    MemoryUnit(config.latency, config.priority) {}
+MainMemory::MainMemory(const string &tag, const MemoryConfig &config) :
+    MemoryUnit(tag, config.latency, config.priority) {}
 
 bool MainMemory::try_access_memory(const MemoryAccessInfo &info) {
   (void)info;
@@ -278,8 +278,8 @@ void CpuConnector::on_memory_arrive(const MemoryAccessInfo &info) {
   }
 }
 
-CpuConnector::CpuConnector(const vector<u64> &trace): 
-      MemoryUnit(0, 0), _traces(trace), _idx(0) {}
+CpuConnector::CpuConnector(const string &tag, const vector<u64> &trace): 
+      MemoryUnit(tag, 0, 0), _traces(trace), _idx(0) {}
 
 void CpuConnector::issue_memory_access() {
   u64 addr = _traces[_idx++];

@@ -192,6 +192,8 @@ class MemoryInterface : public EventHandler {
  protected:
   virtual bool try_access_memory(const MemoryAccessInfo &info) = 0;
   virtual void on_memory_arrive(const MemoryAccessInfo &info) = 0;
+ public:
+  MemoryInterface(const string &tag) : EventHandler(tag) {};
 };
 
 class MemoryUnit : public MemoryInterface {
@@ -205,10 +207,6 @@ class MemoryUnit : public MemoryInterface {
   // memory on arrive event
   unordered_set<u64>      _pending_refs;
 
-  MemoryUnit() {};
-  MemoryUnit(const MemoryUnit&) {};
-
-
  protected:
   // for event engine
   u32                     _latency;
@@ -218,8 +216,8 @@ class MemoryUnit : public MemoryInterface {
   bool validate(EventType type);
 
  public:
-  MemoryUnit(u32 latency, u8 priority) : _next_unit(NULL) ,
-    _latency(latency), _priority(priority) {};
+  MemoryUnit(string tag, u32 latency, u8 priority) : MemoryInterface(tag),
+    _next_unit(NULL), _latency(latency), _priority(priority) {};
 
   virtual ~MemoryUnit(){};
 
@@ -254,8 +252,7 @@ class CacheUnit: public MemoryUnit {
   void on_memory_arrive(const MemoryAccessInfo &info);
 
  public:
-  
-  CacheUnit(const MemoryConfig &config);
+  CacheUnit(const string &tag, const MemoryConfig &config);
   ~CacheUnit ();
 
   inline u64 get_sets() {
@@ -283,7 +280,7 @@ class MainMemory: public MemoryUnit {
   void on_memory_arrive(const MemoryAccessInfo &info);
 
  public:
-  MainMemory(const MemoryConfig &config);
+  MainMemory(const string &tag, const MemoryConfig &config);
 };
 
 class MemoryStats {
@@ -316,7 +313,7 @@ class CpuConnector: public MemoryUnit {
   void on_memory_arrive(const MemoryAccessInfo &info);
 
  public:
-  CpuConnector(const vector<u64> &trace);
+  CpuConnector(const string &tag, const vector<u64> &trace);
 
   void issue_memory_access();
   void issue_memory_access(const MemoryAccessInfo &info);

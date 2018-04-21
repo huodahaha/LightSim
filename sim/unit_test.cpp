@@ -58,7 +58,7 @@ void test_event_engine() {
     }
 
    public:
-    TestHandler() : t(0), ttl(100) {};
+    TestHandler() : EventHandler("test"), t(0), ttl(100) {};
   };
 
   EventEngine* engine = new EventEngine();
@@ -228,10 +228,8 @@ void test_connector() {
   //MemoryConfig cache_memory_cfg(16, 10, 8, 128, 128, LRU_POLICY);
 
   //CacheUnit* cache = new CacheUnit(cache_memory_cfg);
-  MainMemory* memory = new MainMemory(main_memory_cfg);
-  memory->attach_tag("Main Memory");
-  CpuConnector* cpu = new CpuConnector(mock_trace);
-  cpu->attach_tag("CPU Connector");
+  MainMemory* memory = new MainMemory("Main Memory", main_memory_cfg);
+  CpuConnector* cpu = new CpuConnector("CPU Connector", mock_trace);
 
   // assemble
   cpu->set_next(memory);
@@ -266,18 +264,12 @@ void test_pipeline() {
   MemoryConfig L2_cfg(16, 100, 8, 256, 256, RANDOM_POLICY);
 
   // create
-  CacheUnit* L1_cache_0 = new CacheUnit(L1_cfg);
-  L1_cache_0->attach_tag("L1 Cache 0");
-  CacheUnit* L1_cache_1 = new CacheUnit(L1_cfg);
-  L1_cache_1->attach_tag("L1 Cache 1");
-  CacheUnit* L2_cache = new CacheUnit(L2_cfg);
-  L2_cache->attach_tag("L2 Cache");
-  MainMemory* memory = new MainMemory(main_memory_cfg);
-  memory->attach_tag("Main Memory");
-  CpuConnector* cpu0 = new CpuConnector(mock_trace_0);
-  cpu0->attach_tag("CPU0");
-  CpuConnector* cpu1 = new CpuConnector(mock_trace_1);
-  cpu1->attach_tag("CPU1");
+  CacheUnit* L1_cache_0 = new CacheUnit("L1 Cache 0", L1_cfg);
+  CacheUnit* L1_cache_1 = new CacheUnit("L1 Cache 1", L1_cfg);
+  CacheUnit* L2_cache = new CacheUnit("L2 Cache", L2_cfg);
+  MainMemory* memory = new MainMemory("Main Memory", main_memory_cfg);
+  CpuConnector* cpu0 = new CpuConnector("CPU0", mock_trace_0);
+  CpuConnector* cpu1 = new CpuConnector("CPU1", mock_trace_1);
 
   // assemble
   cpu0->set_next(L1_cache_0);
