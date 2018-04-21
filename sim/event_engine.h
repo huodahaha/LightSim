@@ -36,8 +36,13 @@ enum EventType {
   InstExecution,
   InstIssue,
   InstDispatch,
-  InstFetch
+  InstFetch,
+
+  // always keep this type count as the last one
+  TypeCount
 };
+
+string event_type_to_string(EventType type);
 
 // base class for callbackdata
 struct EventDataBase {
@@ -45,13 +50,20 @@ struct EventDataBase {
 };
 
 class EventHandler {
+ private:
+  string    _tag;
+
  protected:
   virtual void proc(u64 tick, EventDataBase* data, EventType type) = 0;
   // validate if this hander can handle the comming event
   virtual bool validate(EventType type) = 0;
 
  public:
+  void attach_tag(const string &tag);
   void proc_event(u64 tick, Event *e);
+  inline string get_tag() {
+    return _tag;
+  }
 };
 
 struct Event {

@@ -97,8 +97,12 @@ void CacheSet::print_blocks(FILE* fs) {
 }
 
 void MemoryUnit::proc(u64 tick, EventDataBase* data, EventType type) {
-  (void)tick;
   MemoryEventData *memory_data = (MemoryEventData *)data;
+
+#ifdef DEBUG
+  SIMLOG(SIM_INFO, "handler: %s, type: %s\ttick: %lld\taddr: %llu\n", 
+         get_tag().c_str(), event_type_to_string(type).c_str(), tick, memory_data->addr);
+#endif
 
   EventEngine *evnet_queue = EventEngineObj::get_instance();
 
@@ -151,7 +155,7 @@ bool MemoryUnit::validate(EventType type) {
 }
 
 CacheUnit::CacheUnit(const MemoryConfig &config)
-  : MemoryUnit(config.latency, config.proiority), 
+  : MemoryUnit(config.latency, config.priority), 
     _ways(config.ways), _blk_size(config.blk_size), _sets(config.sets){
   auto factory = PolicyFactoryObj::get_instance();
   _cr_policy = factory->create_policy(config.policy_type);
@@ -228,7 +232,7 @@ void CacheUnit::on_memory_arrive(const MemoryAccessInfo &info) {
 }
 
 MainMemory::MainMemory(const MemoryConfig &config) :
-    MemoryUnit(config.latency, config.proiority) {}
+    MemoryUnit(config.latency, config.priority) {}
 
 bool MainMemory::try_access_memory(const MemoryAccessInfo &info) {
   (void)info;
@@ -249,20 +253,52 @@ void MemoryStats::clear() {
   _misses = 0;
 }
 
+bool CpuConnector::try_access_memory(const MemoryAccessInfo &info) {
+  (void)info;
+  return false;
+}
+
+void CpuConnector::on_memory_arrive(const MemoryAccessInfo &info) {
+  // 1. mark traces
+  (void)info;
+
+  // 2. issue next call (just for test)
+  if (_idx == _traces.size()) {
+    return;
+  }
+  else {
+    u64 addr = _traces[_idx++];
+    MemoryAccessInfo info(addr, 0);
+    issue_memory_access(info);
+  }
+}
+
+CpuConnector::CpuConnector(const vector<u64> &trace): 
+      MemoryUnit(0, 0), _traces(trace), _idx(0) {}
+
+void CpuConnector::issue_memory_access() {
+  u64 addr = _traces[_idx++];
+  MemoryAccessInfo info(addr, 0);
+  issue_memory_access(info);
+}
+
+void CpuConnector::issue_memory_access(const MemoryAccessInfo &info) {
+  auto evnet_queue = EventEngineObj::get_instance();
+  MemoryEventData *d = new MemoryEventData(info);
+  Event *e = new Event(MemoryOnAccess, this, d);
+  evnet_queue->register_after_now(e, 0, get_priority());
+}
+
 MemoryPipeLine::MemoryPipeLine(vector<MemoryConfig> &configs, MemoryUnit *alu) {
   assert(configs.size() > 0);
 
   // Assume we have the pipeline L1 -> L2 -> .... -> Main Memory 
   // the leftmost have the lowest priority, the right most have 
-  // highest proiority
+  // highest priority
 }
 
 MemoryPipeLine::~MemoryPipeLine() {
   for (u32 i = 0; i < _units.size(); i++) {
     delete _units[i];
   }
-}
-
-bool MemoryPipeLine::try_access_memory(const MemoryAccessInfo &info) {
-  return _head->try_access_memory(info);
 }

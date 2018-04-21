@@ -31,4 +31,6 @@ typedef unsigned short u8;
       fprintf(stderr, "INFO:[%s::%d::%s]:" fmt, __FILE__, __LINE__, __FUNCTION__, ##__VA_ARGS__);\
       } while(0)
 
+#define DEBUG
+
 #endif

@@ -215,13 +215,46 @@ void test_cfg_loader() {
   }
 }
 
+void test_memory_pipeline() {
+  vector<u64> mock_trace;
+  u64 addr = 0;
+  for (int i = 0; i < 8; i++) {
+    mock_trace.push_back(addr);
+    addr += 32;
+  }
+
+  MemoryConfig main_memory_cfg(32, 100);
+  //MemoryConfig cache_memory_cfg(16, 10, 8, 128, 128, LRU_POLICY);
+
+  //CacheUnit* cache = new CacheUnit(cache_memory_cfg);
+  MainMemory* memory = new MainMemory(main_memory_cfg);
+  memory->attach_tag("Main Memory");
+  CpuConnector* cpu = new CpuConnector(mock_trace);
+  cpu->attach_tag("CPU Connector");
+
+  // assamble
+  cpu->set_next(memory);
+  memory->add_prev(cpu);
+
+  cpu->issue_memory_access();
+
+  EventEngine *evnet_queue = EventEngineObj::get_instance();
+  while (true) {
+    auto ret = evnet_queue->loop();
+    if (ret == 0)
+      break;
+  }
+}
+
 int main() {
   srand(time(NULL));
   test_valid_addr();
-  test_logger();
+  //test_logger();
   test_event_engine();
   test_lru_set();
   test_random_set();
   test_trace_loader();
   test_cfg_loader();
+
+  test_memory_pipeline();
 }
