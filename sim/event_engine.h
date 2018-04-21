@@ -32,7 +32,8 @@ enum EventType {
   
   // CPU event type
   // CPU event priority is the reverse order of the pipeline
-  ReorderBufferRetire,
+  // ReorderBufferRetire,
+  WriteBack,
   InstExecution,
   InstIssue,
   InstDispatch,

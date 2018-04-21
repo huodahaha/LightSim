@@ -168,12 +168,33 @@ bool prefix(const char * str, const char * prefix) {
   return strncmp(str, prefix, strlen(prefix)) == 0;
 }
 
+void print_trace(const TraceFormat& trace){
+  printf("pc: %016llX\n", trace.pc);
+  printf("opcode: %08X :", trace.opcode);
+  printf("%s\n", trace.opcode_string);
+  printf("thread_id: %u\n", trace.thread_id);
+  printf("is_branch: %u\n", trace.is_branch);
+  printf("branch_taken: %u\n", trace.branch_taken);
+  printf("ndestination memory:");
+  for (int i = 0; i < NUM_INSTR_DESTINATIONS; i++) {
+    printf("%016llX  ", trace.destination_memory[i]);
+  }
+  printf("\nsource memory:");
+  for (int i = 0; i < NUM_INSTR_SOURCES; i++) {
+    printf("%016llX  ", trace.source_memory[i]);
+  }
+  printf("\n");
+}
+
+
 void test_trace_loader() {
   TraceLoader loader("../traces/ls_trace.trace.gz");
   TraceFormat trace;
   TraceFormat last_trace;
+  u32 print_count = 0;
   loader.next_instruction(last_trace);
   while (loader.next_instruction(trace)) {
+//    if (print_count++ < 100 )print_trace(trace);
     if (! (last_trace.is_branch && last_trace.branch_taken) &&
            last_trace.thread_id == trace.thread_id) {
       if ((trace.pc - last_trace.pc) >= 16) {

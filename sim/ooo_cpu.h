@@ -10,6 +10,14 @@
 // 重复的address会被
 // poll
 
+struct CPUEventData : public EventDataBase {
+  u32 opcode;
+  u64 PC;
+  u64 destination_memory[NUM_INSTR_DESTINATIONS]; // output memory
+  u64 source_memory[NUM_INSTR_SOURCES];
+  CPUEventData(const TraceFormat &);
+};
+
 class MemoryConnecter {
 
 };
@@ -20,8 +28,7 @@ class SequentialCPU : public EventHandler {
   const MultiTraceLoader * _multi_trace_loader;
   TraceFormat              _current_trace;
   const MemoryConnecter    _memomry_connecter;
-
-  unordered_set<u64>       _pending_refs;
+  list<TraceFormat>        _instruction_list;
 
   size_t get_operation_latency(const TraceFormat& trace) const;
 
