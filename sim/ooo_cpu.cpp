@@ -20,7 +20,7 @@ void SequentialCPU::proc(u64 tick, EventDataBase* data, EventType type) {
     // check ready state of all the operand of instruction and issue InstExecution
     case InstIssue : {} break;
     // If the instruction list is not full read new instruction
-    case InstFetch : {} break;
+    case InstFetch : {} break
   }
 
 }

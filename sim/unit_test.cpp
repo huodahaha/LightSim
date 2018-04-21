@@ -204,7 +204,6 @@ void test_trace_loader() {
     }
     last_trace = trace;
   }
-
 }
 
 void test_cfg_loader() {
@@ -237,13 +236,114 @@ void test_cfg_loader() {
   }
 }
 
+// cpu -> memory
+void test_connector() {
+  vector<u64> mock_trace;
+  u64 addr = 0;
+  for (int i = 0; i < 8; i++) {
+    mock_trace.push_back(addr);
+    addr += 32;
+  }
+
+  MemoryConfig main_memory_cfg(32, 100);
+  //MemoryConfig cache_memory_cfg(16, 10, 8, 128, 128, LRU_POLICY);
+
+  //CacheUnit* cache = new CacheUnit(cache_memory_cfg);
+  MainMemory* memory = new MainMemory(main_memory_cfg);
+  memory->attach_tag("Main Memory");
+  CpuConnector* cpu = new CpuConnector(mock_trace);
+  cpu->attach_tag("CPU Connector");
+
+  // assemble
+  cpu->set_next(memory);
+  memory->add_prev(cpu);
+
+  cpu->issue_memory_access();
+
+  EventEngine *evnet_queue = EventEngineObj::get_instance();
+  while (true) {
+    auto ret = evnet_queue->loop();
+    if (ret == 0)
+      break;
+  }
+
+  delete memory;
+  delete cpu;
+}
+
+// cpu0 -> L1 -> l2 -> memory
+// cpu1 -> L1 ---| 
+void test_pipeline() {
+  vector<u64> mock_trace_0, mock_trace_1;
+  u64 addr = 0, process_shift = 1 << 16;
+  for (int i = 0; i < 16; i++) {
+    mock_trace_0.push_back(addr);
+    mock_trace_1.push_back(addr + process_shift);
+    addr += 32;
+  }
+
+  MemoryConfig main_memory_cfg(32, 1000);
+  MemoryConfig L1_cfg(24, 10, 8, 128, 128, LRU_POLICY);
+  MemoryConfig L2_cfg(16, 100, 8, 256, 256, RANDOM_POLICY);
+
+  // create
+  CacheUnit* L1_cache_0 = new CacheUnit(L1_cfg);
+  L1_cache_0->attach_tag("L1 Cache 0");
+  CacheUnit* L1_cache_1 = new CacheUnit(L1_cfg);
+  L1_cache_1->attach_tag("L1 Cache 1");
+  CacheUnit* L2_cache = new CacheUnit(L2_cfg);
+  L2_cache->attach_tag("L2 Cache");
+  MainMemory* memory = new MainMemory(main_memory_cfg);
+  memory->attach_tag("Main Memory");
+  CpuConnector* cpu0 = new CpuConnector(mock_trace_0);
+  cpu0->attach_tag("CPU0");
+  CpuConnector* cpu1 = new CpuConnector(mock_trace_1);
+  cpu1->attach_tag("CPU1");
+
+  // assemble
+  cpu0->set_next(L1_cache_0);
+  L1_cache_0->add_prev(cpu0);
+
+  cpu1->set_next(L1_cache_1);
+  L1_cache_1->add_prev(cpu1);
+
+  L1_cache_0->set_next(L2_cache);
+  L1_cache_1->set_next(L2_cache);
+  L2_cache->add_prev(L1_cache_1);
+  L2_cache->add_prev(L1_cache_0);
+
+  L2_cache->set_next(memory);
+  memory->add_prev(L2_cache);
+
+  cpu0->issue_memory_access();
+  cpu1->issue_memory_access();
+
+  EventEngine *evnet_queue = EventEngineObj::get_instance();
+  while (true) {
+    auto ret = evnet_queue->loop();
+    if (ret == 0)
+      break;
+  }
+
+  delete L1_cache_0;
+  delete L1_cache_1;
+  delete L2_cache;
+  delete memory;
+  delete cpu0;
+  delete cpu1;
+}
+
 int main() {
+  test_pipeline();
+
   srand(time(NULL));
   test_valid_addr();
-  test_logger();
+  //test_logger();
   test_event_engine();
   test_lru_set();
   test_random_set();
   test_trace_loader();
   test_cfg_loader();
+
+  //test_connector();
 }

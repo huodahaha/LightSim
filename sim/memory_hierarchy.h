@@ -38,7 +38,7 @@ enum CR_POLICY {
 //  configuration
 struct MemoryConfig {
   // both cache and main memory contains
-  u8            proiority;
+  u8            priority;
   u32           latency;
 
   // only cache contains
@@ -46,6 +46,12 @@ struct MemoryConfig {
   u32           blk_size;
   u64           sets;
   CR_POLICY     policy_type;
+
+  MemoryConfig() {};
+  MemoryConfig(u8 priority_, u32 latency_) : priority(priority_), latency(latency_) {};
+  MemoryConfig(u8 priority_, u32 latency_, u32 ways_, u32 blk_size_, u64 sets_, 
+               CR_POLICY policy_type_) : priority(priority_), latency(latency_), 
+               ways(ways_), blk_size(blk_size_), sets(sets_), policy_type(policy_type_) {};
 };
 
 struct MemoryEventData : public EventDataBase {
@@ -183,7 +189,7 @@ class CacheSet {
 };
 
 class MemoryInterface : public EventHandler {
- public:
+ protected:
   virtual bool try_access_memory(const MemoryAccessInfo &info) = 0;
   virtual void on_memory_arrive(const MemoryAccessInfo &info) = 0;
 };
@@ -243,6 +249,10 @@ class CacheUnit: public MemoryUnit {
   CRPolicyInterface *             _cr_policy;
   vector<CacheSet*>               _cache_sets;
 
+ protected:
+  bool try_access_memory(const MemoryAccessInfo &info);
+  void on_memory_arrive(const MemoryAccessInfo &info);
+
  public:
   
   CacheUnit(const MemoryConfig &config);
@@ -261,9 +271,6 @@ class CacheUnit: public MemoryUnit {
   }
 
   u64 get_set_no(u64 addr);
-
-  bool try_access_memory(const MemoryAccessInfo &info);
-  void on_memory_arrive(const MemoryAccessInfo &info);
 };
 
 /**
@@ -271,11 +278,12 @@ class CacheUnit: public MemoryUnit {
  * assume there is no MMU, no page fault
  */
 class MainMemory: public MemoryUnit {
- public:
-  MainMemory(const MemoryConfig &config);
-
+ protected:
   bool try_access_memory(const MemoryAccessInfo &info);
   void on_memory_arrive(const MemoryAccessInfo &info);
+
+ public:
+  MainMemory(const MemoryConfig &config);
 };
 
 class MemoryStats {
@@ -298,6 +306,23 @@ class MemoryStats {
   void clear();
 };
 
+class CpuConnector: public MemoryUnit {
+ private:
+  vector<u64>   _traces;
+  u32           _idx;
+
+ protected:
+  bool try_access_memory(const MemoryAccessInfo &info);
+  void on_memory_arrive(const MemoryAccessInfo &info);
+
+ public:
+  CpuConnector(const vector<u64> &trace);
+
+  void issue_memory_access();
+  void issue_memory_access(const MemoryAccessInfo &info);
+};
+
+
 class MemoryPipeLine {
  private:
   vector<MemoryUnit *>  _units;
@@ -308,7 +333,6 @@ class MemoryPipeLine {
   
   MemoryPipeLine(vector<MemoryConfig> &configs, MemoryUnit *alu);
   ~MemoryPipeLine();
-  bool try_access_memory(const MemoryAccessInfo &info);
 };
 
 /**************************************************************************/

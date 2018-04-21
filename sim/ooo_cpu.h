@@ -27,8 +27,14 @@ class SequentialCPU : public EventHandler {
   const size_t             _id;
   const MultiTraceLoader * _multi_trace_loader;
   TraceFormat              _current_trace;
+<<<<<<< HEAD
   const MemoryConnecter    _memomry_connecter;
   list<TraceFormat>        _instruction_list;
+=======
+  MemoryConnecter    _memomry_connecter;
+
+  unordered_set<u64>       _pending_refs;
+>>>>>>> 68057ce40fd3e36552042ab983ce8a835e34120b
 
   size_t get_operation_latency(const TraceFormat& trace) const;
 
@@ -48,4 +54,4 @@ class SequentialCPU : public EventHandler {
 //
 //};
 
-#endif CACHE_REPLACEMENT_OOO_CPU_H
+#endif // CACHE_REPLACEMENT_OOO_CPU_H
