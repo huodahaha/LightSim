@@ -56,10 +56,12 @@ size_t MultiTraceLoader::next_instruction(u32 trace_id, TraceFormat &trace) {
   const u64 range =  0x7FFFFFFFFFF;
   size_t ret = _trace_loaders[trace_id]->next_instruction(trace);
   for (u32 i = 0; i < NUM_INSTR_DESTINATIONS; i++) {
+    if (trace.destination_memory[i]== 0) continue;
     trace.destination_memory[i] += shift * trace_id;
     trace.destination_memory[i] = trace.destination_memory[i] % range;
   }
   for (u32 i = 0; i < NUM_INSTR_SOURCES; i++) {
+    if (trace.source_memory[i] == 0) continue;
     trace.source_memory[i] += shift * trace_id;
     trace.source_memory[i] = trace.source_memory[i] % range;
   }

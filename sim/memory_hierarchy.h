@@ -323,7 +323,7 @@ class CpuConnector: public MemoryUnit {
  private:
   vector<u64>   _traces;
   u32           _idx;
-
+  unordered_set<u64> _pending_refs;
  protected:
   bool try_access_memory(const MemoryAccessInfo &info);
   void on_memory_arrive(const MemoryAccessInfo &info);

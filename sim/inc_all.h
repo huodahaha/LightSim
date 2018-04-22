@@ -7,6 +7,7 @@
 #include <cassert>
 #include <vector>
 #include <queue>
+#include <list>
 #include <map>
 #include <functional>
 
