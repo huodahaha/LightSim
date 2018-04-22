@@ -72,6 +72,10 @@ CacheSet::~CacheSet() {
     }
   }
 }
+  
+void CacheSet::set_set_num(u32 set_num) {
+  _set_num = set_num;
+}
 
 u64 CacheSet::calulate_tag(u64 addr) {
   u32 s = len_of_binary(_sets);
@@ -208,7 +212,7 @@ CacheUnit::CacheUnit(const string &tag, const MemoryConfig &config)
   : MemoryUnit(tag, config.latency, config.priority), 
     _ways(config.ways), _blk_size(config.blk_size), _sets(config.sets){
   auto factory = PolicyFactoryObj::get_instance();
-  _cr_policy = factory->get_policy(config.policy_type);
+  _cr_policy = factory->get_policy(config);
   if (!_cr_policy) {
     SIMLOG(SIM_ERROR, "cache replacemenet policy can not be NULL");
     exit(1);
@@ -240,6 +244,7 @@ CacheUnit::CacheUnit(const string &tag, const MemoryConfig &config)
   
   for (u32 i = 0; i < _sets; i++) {
     CacheSet *line = new CacheSet(_ways, _blk_size, _sets, _cr_policy);
+    line->set_set_num(i);
     _cache_sets.push_back(line);
   }
 }
