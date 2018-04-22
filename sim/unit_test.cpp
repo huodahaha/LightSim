@@ -1,4 +1,3 @@
-#include "memory_helper.h"
 #include "memory_hierarchy.h"
 #include "trace_loader.h"
 #include "cfg_loader.h"

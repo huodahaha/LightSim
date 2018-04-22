@@ -218,7 +218,7 @@ void CR_DIP_Policy::on_arrive(CacheSet *line, u64 tag, const MemoryAccessInfo &i
       _bip->on_arrive(line, tag, info);
     }
     else {
-    _lru->on_arrive(line, tag, info);
+      _lru->on_arrive(line, tag, info);
     }
   }
 }

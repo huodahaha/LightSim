@@ -5,7 +5,6 @@
 
 #include "inc_all.h"
 #include "event_engine.h"
-#include "memory_helper.h"
 #include "cfg_loader.h"
 #include "ooo_cpu.h"
 
