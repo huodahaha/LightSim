@@ -82,7 +82,7 @@ void test_lru_set() {
   bool ret;
 
   auto factory = PolicyFactoryObj::get_instance();
-  CRPolicyInterface* lru = factory->create_policy(LRU_POLICY);
+  CRPolicyInterface* lru = factory->get_policy(LRU_POLICY);
   CacheSet *line = new CacheSet(ways, blk_size, sets, lru);
 
   u64 addr = 1 << 16;
@@ -138,7 +138,7 @@ void test_random_set() {
   u32 sets = 32;
 
   auto factory = PolicyFactoryObj::get_instance();
-  CRPolicyInterface* lru = factory->create_policy(RANDOM_POLICY);
+  CRPolicyInterface* lru = factory->get_policy(RANDOM_POLICY);
   CacheSet *line = new CacheSet(ways, blk_size, sets, lru);
 
   u64 addr = 1 << 16;

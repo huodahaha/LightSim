@@ -1,6 +1,8 @@
 #include "memory_hierarchy.h"
 #include "cr_policy.h"
 
+#define BIP_BIMODAL_THROTTLE 1.0/16
+
 PolicyFactory::~PolicyFactory() {
   for (auto p: _policies) {
     assert(p != NULL);
@@ -14,7 +16,9 @@ CRPolicyInterface* PolicyFactory::get_policy(CR_POLICY policy_type) {
     return iter->second;
 
   auto ret = create_policy(policy_type);
-  _shared_policies[policy_type] = ret;
+  if (ret->is_shared()) {
+    _shared_policies[policy_type] = ret;
+  }
   return ret;
 }
 
@@ -110,4 +114,34 @@ void CR_LIP_Policy::on_arrive(CacheSet *line, u64 tag, const MemoryAccessInfo &i
   u32 ways = line->get_ways();
   auto cand = _factory->create(tag, line->get_block_size(), info);
   line->evict_by_pos(ways-1, cand, true);
+}
+
+CR_BIP_Policy::CR_BIP_Policy(CacheBlockFactoryInterace* factory) : CRPolicyInterface(factory) {
+  _throttle = BIP_BIMODAL_THROTTLE;
+  srand(time(NULL));
+}
+
+bool CR_BIP_Policy::do_replace() {
+  return ((rand()) / (double)RAND_MAX) < _throttle;
+}
+
+void CR_BIP_Policy::on_arrive(CacheSet *line, u64 tag, const MemoryAccessInfo &info) {
+  u32 ways = line->get_ways();
+  auto cand = _factory->create(tag, line->get_block_size(), info);
+  line->evict_by_pos(ways-1, cand, true);
+
+  if (do_replace()) {
+    // on a very low possibilty, place the block on MRU
+    on_hit(line, ways-1, info);
+  }
+}
+
+void CR_BIP_Policy::on_hit(CacheSet *line, u32 pos, const MemoryAccessInfo &info) {
+  (void)info;
+  auto cand = line->get_block_by_pos(pos);
+  for (u32 i = 0; i <= pos; i++) {
+    auto to_evict = line->get_block_by_pos(i);
+    line->evict_by_pos(i, cand, false);
+    cand = to_evict;
+  }
 }

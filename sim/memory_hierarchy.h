@@ -126,22 +126,24 @@ class CRPolicyInterface {
   CRPolicyInterface(CacheBlockFactoryInterace *factory): _factory(factory) {};
   virtual ~CRPolicyInterface() {};
   virtual void on_hit(CacheSet *line, u32 pos, const MemoryAccessInfo &info) = 0;
+  virtual void on_miss(CacheSet *line, const MemoryAccessInfo &info);
   virtual void on_arrive(CacheSet *line, u64 tag, const MemoryAccessInfo &info) = 0;
+  // some cache replacement policy need to store private information, make the
+  // policy unsharable
+  virtual bool is_shared();
 };
 
 class PolicyFactory {
  private:
   map<CR_POLICY, CRPolicyInterface*>      _shared_policies;
   vector<CRPolicyInterface*>              _policies;
+  CRPolicyInterface* create_policy(CR_POLICY policy_type);
 
  public:
   PolicyFactory() {};
   ~PolicyFactory();
 
   CRPolicyInterface* get_policy(CR_POLICY policy_type);
-
-  // when policy use private data
-  CRPolicyInterface* create_policy(CR_POLICY policy_type);
 };
 
 

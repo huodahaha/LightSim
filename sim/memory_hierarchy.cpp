@@ -46,6 +46,16 @@ CacheSet::CacheSet(u32 ways, u32 blk_size, u32 sets, CRPolicyInterface *policy) 
   assert(_blk_size < MAX_BLOCK_SIZE);
 }
 
+// default do nothing. when use set dueling, we need use the 
+// call back to count PSEL
+void CRPolicyInterface::on_miss(CacheSet *line, const MemoryAccessInfo &info) {
+  (void)line, void(info);
+}
+
+bool CRPolicyInterface::is_shared() {
+  return true; 
+}
+
 CacheSet::CacheSet(u32 ways, u32 blk_size, u32 sets, CRPolicyInterface *policy, const string &tag): _ways(ways), 
     _blk_size(blk_size), _sets(sets), _blocks(ways, NULL), _cr_policy(policy), _set_tag(tag) {
   assert(_cr_policy);
@@ -98,6 +108,7 @@ bool CacheSet::try_access_memory(const MemoryAccessInfo &info) {
   u64 tag = calulate_tag(info.addr);
   s32 pos = find_pos_by_tag(tag);
   if (pos == -1) {
+    _cr_policy->on_miss(this, info);
     return false;
   }
   else {
@@ -197,7 +208,7 @@ CacheUnit::CacheUnit(const string &tag, const MemoryConfig &config)
   : MemoryUnit(tag, config.latency, config.priority), 
     _ways(config.ways), _blk_size(config.blk_size), _sets(config.sets){
   auto factory = PolicyFactoryObj::get_instance();
-  _cr_policy = factory->create_policy(config.policy_type);
+  _cr_policy = factory->get_policy(config.policy_type);
   if (!_cr_policy) {
     SIMLOG(SIM_ERROR, "cache replacemenet policy can not be NULL");
     exit(1);
