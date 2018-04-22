@@ -155,7 +155,7 @@ void OutOfOrderCPU::handle_WriteBack(EventEngine * event_queue,
     if (cpu_event_data->destination_memory[i] != 0) {
       MemoryAccessInfo acces_to_writeback(cpu_event_data->PC,
                                           cpu_event_data->destination_memory[i]);
-      _memory_connector.issue_memory_access(acces_to_writeback);
+//      _memory_connector->issue_memory_access(acces_to_writeback);
     }
   }
 }
@@ -231,54 +231,4 @@ void OutOfOrderCPU::handle_InstFetch(EventEngine * event_queue,
     //Todo Make it an event
     _dispatch_list.push_back(cpu_event_data);
   }
-}
-
-
-OoOCpuConnector::OoOCpuConnector(const string &tag, u8 id): MemoryUnit(tag, 0, 0),
-                                                      _waiting_event_data(nullptr) {
-  _cpu_ptr = new OoOCpuConnector(tag, id, this);
-}
-
-OoOCpuConnector::~OoOCpuConnector() {
-  delete _cpu_ptr;
-}
-
-bool OoOCpuConnector::try_access_memory(const MemoryAccessInfo &info) {
-  (void)info;
-  return false;
-}
-
-void OoOCpuConnector::on_memory_arrive(const MemoryAccessInfo &info) {
-  //todo make a new kind of event that tells the cpu the memory arrive
-  if (! _waiting_event_data) return;
-  auto iter = _pending_refs.find(info.addr);
-  if (iter != _pending_refs.end()) {
-    _pending_refs.erase(iter);
-  }
-  if (_pending_refs.empty()) {
-    auto evnet_queue = EventEngineObj::get_instance();
-    Event *e = new Event(InstExecution, _cpu_ptr, _waiting_event_data);
-    evnet_queue->register_after_now(e, 1, get_priority());
-    _waiting_event_data->ready = true;
-    _waiting_event_data = nullptr;
-  }
-}
-
-
-void OoOCpuConnector::issue_memory_access(const MemoryAccessInfo &info,
-                                       CPUEventData *event_data) {
-  auto evnet_queue = EventEngineObj::get_instance();
-  MemoryEventData *d = new MemoryEventData(info);
-  Event *e = new Event(MemoryOnAccess, this, d);
-  evnet_queue->register_after_now(e, 0, get_priority());
-  if (event_data) {
-    _waiting_event_data = event_data;
-    _pending_refs.insert(info.addr);
-  }
-}
-
-void OoOCpuConnector::start() {
-  auto event_queue = EventEngineObj::get_instance();
-  Event *e = new Event(InstFetch, _cpu_ptr, nullptr);
-  event_queue->register_after_now(e, 0, _priority);
 }

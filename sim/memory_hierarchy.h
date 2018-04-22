@@ -24,6 +24,7 @@ class CacheUnit;
 class MainMemory;
 class MemoryStats;
 class SequentialCPU;
+class OutOfOrderCPU;
 
 /*********************************  Enums  ********************************/
 enum CR_POLICY {
@@ -353,6 +354,28 @@ class CpuConnector: public MemoryUnit {
 };
 
 
+class OoOCpuConnector: public MemoryUnit {
+ private:
+  unordered_set<u64> _pending_refs;
+  CPUEventData *_waiting_event_data;
+  OutOfOrderCPU * _cpu_ptr;
+ protected:
+  bool try_access_memory(const MemoryAccessInfo &info);
+  void on_memory_arrive(const MemoryAccessInfo &info);
+
+ public:
+  OoOCpuConnector(const string &tag, u8 id);
+  virtual ~OoOCpuConnector();
+  void set_tracer(const vector<u64> &traces);
+  void issue_memory_access();
+  void issue_memory_access(const MemoryAccessInfo &info, CPUEventData *);
+  void start();
+//  void proc(u64 tick, EventDataBase* data, EventType type);
+};
+
+
+
+
 class PipeLineBuilder {
  private:
   map<string, BaseNodeCfg*>   _nodes_cfg;
@@ -367,6 +390,8 @@ class PipeLineBuilder {
 
   vector<CpuConnector* > get_connectors();
 };
+
+
 
 /**************************************************************************/
 

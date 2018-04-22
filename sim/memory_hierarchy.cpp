@@ -401,6 +401,47 @@ void CpuConnector::start() {
   event_queue->register_after_now(e, 0, _priority);
 }
 
+
+OoOCpuConnector::OoOCpuConnector(const string &tag, u8 id): MemoryUnit(tag, 0, 0),
+                                                            _waiting_event_data(nullptr) {
+  _cpu_ptr = new OutOfOrderCPU(tag, id, this);
+}
+
+OoOCpuConnector::~OoOCpuConnector() {
+  delete _cpu_ptr;
+}
+
+bool OoOCpuConnector::try_access_memory(const MemoryAccessInfo &info) {
+  (void)info;
+  return false;
+}
+
+void OoOCpuConnector::on_memory_arrive(const MemoryAccessInfo &info) {
+  //todo make a new kind of event that tells the cpu the memory arrive
+  (void)info;
+}
+
+
+void OoOCpuConnector::issue_memory_access(const MemoryAccessInfo &info,
+                                          CPUEventData *event_data) {
+  auto evnet_queue = EventEngineObj::get_instance();
+  MemoryEventData *d = new MemoryEventData(info);
+  Event *e = new Event(MemoryOnAccess, this, d);
+  evnet_queue->register_after_now(e, 0, get_priority());
+  if (event_data) {
+    _waiting_event_data = event_data;
+    _pending_refs.insert(info.addr);
+  }
+}
+
+void OoOCpuConnector::start() {
+  auto event_queue = EventEngineObj::get_instance();
+  Event *e = new Event(InstFetch, _cpu_ptr, nullptr);
+  event_queue->register_after_now(e, 0, _priority);
+}
+
+
+
 MemoryUnit* PipeLineBuilder::create_node(BaseNodeCfg *cfg, u8 level) {
   auto iter = _nodes.find(cfg->name);
   if (iter == _nodes.end()) {
