@@ -4,6 +4,7 @@
 #include <cstdlib>
 #include <cstdio>
 #include <string>
+#include <cstring>
 #include <cassert>
 #include <vector>
 #include <queue>

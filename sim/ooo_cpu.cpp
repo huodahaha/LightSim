@@ -2,8 +2,8 @@
 
 CPUEventData::CPUEventData(const TraceFormat & t): opcode(t.opcode),
                                                    PC(t.pc) {
-  memcpy(destination_memory, t.destination_memory, sizeof(destination_memory));
-  memcpy(source_memory, t.source_memory, sizeof(source_memory));
+  std::memcpy(destination_memory, t.destination_memory, sizeof(destination_memory));
+  std::memcpy(source_memory, t.source_memory, sizeof(source_memory));
 }
 
 u32 SequentialCPU::get_op_latency(const u32 opcode) const {

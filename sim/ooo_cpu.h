@@ -7,9 +7,6 @@
 #include "trace_loader.h"
 
 
-// on_memory_acess
-// 重复的address会被
-// poll
 class CpuConnector;
 
 struct CPUEventData : public EventDataBase {
