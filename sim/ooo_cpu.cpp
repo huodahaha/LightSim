@@ -99,7 +99,7 @@ void SequentialCPU::proc(u64 tick, EventDataBase* data, EventType type) {
   }
 }
 
-
+/*
 OutOfOrderCPU::OutOfOrderCPU(const string &tag, u8 id,
                              OoOCpuConnector *memory_connector)
     : CPU(tag), _id(id), _memory_connector(memory_connector) {
@@ -232,3 +232,4 @@ void OutOfOrderCPU::handle_InstFetch(EventEngine * event_queue,
     _dispatch_list.push_back(cpu_event_data);
   }
 }
+*/

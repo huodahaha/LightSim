@@ -16,7 +16,6 @@ TraceFormat::TraceFormat() : pc(0), opcode(0), thread_id(0),
   }
 }
 
-
 TraceLoader::TraceLoader(const string &filename) {
   char gzip_command[512];
   sprintf(gzip_command, "gunzip -c %s", filename.c_str());
@@ -46,6 +45,13 @@ void MultiTraceLoader::adding_trace(const string &filename) {
 
 size_t MultiTraceLoader::get_trace_num() const {
   return _trace_loaders.size();
+}
+
+s32 MultiTraceLoader::assign_trace() {
+  if (_cur_assigned == get_trace_num())
+    return -1;
+  else
+    return _cur_assigned++;
 }
 
 size_t MultiTraceLoader::next_instruction(u32 trace_id, TraceFormat &trace) {

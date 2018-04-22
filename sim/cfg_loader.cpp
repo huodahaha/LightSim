@@ -24,9 +24,7 @@ static BaseNodeCfg* parse_node(Value &node) {
   string name = node["name"].GetString();
 
   if (type == "cpu") {
-    check_key(node, "trace_file", name.c_str());
-    string trace_file = node["trace_file"].GetString();
-    node_cfg = new CpuNodeCfg(CpuNode, name, trace_file);
+    node_cfg = new CpuNodeCfg(CpuNode, name);
 
   }
 
@@ -222,4 +220,30 @@ void SimCfgLoader::parse(string filename) {
 
   assamble(_networks_map, _nodes_map);
   assert(check_tree(_nodes_map));
+}
+
+void TracesCfgLoader::parse(string filename) {
+  FILE* fp = fopen(filename.c_str(), "rb"); 
+  char readBuffer[65536];
+  FileReadStream is(fp, readBuffer, sizeof(readBuffer));
+  Document d;
+  d.ParseStream(is);
+  fclose(fp);
+
+  if (!d.IsObject()) {
+    fprintf(stderr, "%s parse failure, may due to bad format\n", filename.c_str());
+    exit(1);
+  }
+  
+  check_documents(d, "traces");
+  Value& traces = d["traces"];
+
+  if (!traces.IsArray()) {
+    fprintf(stderr, "\"traces\" cfg should be an array\n");
+    exit(1);
+  }
+
+  for (auto& v : traces.GetArray()) {
+    _trace_files.push_back(v.GetString());
+  }
 }

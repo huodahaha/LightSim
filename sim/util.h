@@ -18,9 +18,9 @@ typedef unsigned short u8;
     if (SIM_INFO == LEVEL)\
       fprintf(stdout, "INFO:[%s::%d::%s]:" fmt, __FILE__, __LINE__, __FUNCTION__, ##__VA_ARGS__);\
     else if (SIM_WARNING == LEVEL)\
-      fprintf(stdout, "INFO:[%s::%d::%s]:" fmt, __FILE__, __LINE__, __FUNCTION__, ##__VA_ARGS__);\
+      fprintf(stdout, "WARNING:[%s::%d::%s]:" fmt, __FILE__, __LINE__, __FUNCTION__, ##__VA_ARGS__);\
     else if (SIM_ERROR == LEVEL)\
-      fprintf(stderr, "INFO:[%s::%d::%s]:" fmt, __FILE__, __LINE__, __FUNCTION__, ##__VA_ARGS__);\
+      fprintf(stderr, "ERROR:[%s::%d::%s]:" fmt, __FILE__, __LINE__, __FUNCTION__, ##__VA_ARGS__);\
       } while(0)
 
 template <typename T> class Singleton {

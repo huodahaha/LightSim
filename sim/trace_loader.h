@@ -53,13 +53,15 @@ class TraceLoader {
 
 class MultiTraceLoader {
  private:
-  vector<TraceLoader *> _trace_loaders;
+  vector<TraceLoader *>   _trace_loaders;
+  size_t                  _cur_assigned;
 
  public:
-  MultiTraceLoader(): _trace_loaders(0) {};
+  MultiTraceLoader(): _trace_loaders(0), _cur_assigned(0) {};
   ~MultiTraceLoader();
   void adding_trace(const string &filename);
   size_t get_trace_num() const;
+  s32 assign_trace();
   size_t next_instruction(u32 trace_id, TraceFormat &trace);
 };
 
