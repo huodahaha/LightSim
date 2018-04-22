@@ -321,9 +321,11 @@ CpuConnector::CpuConnector(const string &tag, u8 id): MemoryUnit(tag, 0, 0),
                                                _waiting_event_data(nullptr) {
   _cpu_ptr = new SequentialCPU(tag, id, this);
 }
+
 CpuConnector::~CpuConnector() {
   delete _cpu_ptr;
 }
+
 void CpuConnector::set_tracer(const vector<u64> &traces) {
   _traces = traces;
   _idx = 0;
