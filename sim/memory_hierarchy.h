@@ -6,6 +6,7 @@
 #include "inc_all.h"
 #include "event_engine.h"
 #include "memory_helper.h"
+#include "cfg_loader.h"
 
 using namespace std;
 
@@ -25,6 +26,7 @@ class MemoryStats;
 
 /*********************************  Enums  ********************************/
 enum CR_POLICY {
+  None,
   LRU_POLICY,
   RANDOM_POLICY,
   LIP_POLICY,
@@ -52,6 +54,8 @@ struct MemoryConfig {
   MemoryConfig(u8 priority_, u32 latency_, u32 ways_, u32 blk_size_, u64 sets_, 
                CR_POLICY policy_type_) : priority(priority_), latency(latency_), 
                ways(ways_), blk_size(blk_size_), sets(sets_), policy_type(policy_type_) {};
+  MemoryConfig(const CacheNodeCfg cfg, u32 priority_);
+  MemoryConfig(const MemoryNodeCfg cfg, u32 priority_);
 };
 
 struct MemoryEventData : public EventDataBase {
@@ -325,23 +329,28 @@ class CpuConnector: public MemoryUnit {
   void on_memory_arrive(const MemoryAccessInfo &info);
 
  public:
-  CpuConnector(const string &tag, const vector<u64> &trace);
+  CpuConnector(const string &tag): MemoryUnit(tag, 0, 0) {}
+
+  void set_tracer(const vector<u64> &traces);
 
   void issue_memory_access();
   void issue_memory_access(const MemoryAccessInfo &info);
 };
 
 
-class MemoryPipeLine {
+class PipeLineBuilder {
  private:
-  vector<MemoryUnit *>  _units;
-  EventHandler*         _alu;
-  MemoryUnit *          _head;
+  map<string, BaseNodeCfg*>   _nodes_cfg;
+  map<string, MemoryUnit*>   _nodes;
+
+  MemoryUnit* create_node(BaseNodeCfg *cfg, u8 level);
 
  public:
-  
-  MemoryPipeLine(vector<MemoryConfig> &configs, MemoryUnit *alu);
-  ~MemoryPipeLine();
+  PipeLineBuilder() {};
+  void load(const map<string, BaseNodeCfg*> &nodes_map);
+  ~PipeLineBuilder();
+
+  vector<CpuConnector* > get_connectors();
 };
 
 /**************************************************************************/
@@ -350,6 +359,7 @@ class MemoryPipeLine {
 
 typedef Singleton<PolicyFactory> PolicyFactoryObj;
 typedef Singleton<MemoryStatsManager> MemoryStatsManagerObj;
+typedef Singleton<PipeLineBuilder> PipeLineBuilderObj;
 
 /**************************************************************************/
 

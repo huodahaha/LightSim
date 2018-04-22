@@ -225,11 +225,9 @@ void test_connector() {
   }
 
   MemoryConfig main_memory_cfg(32, 100);
-  //MemoryConfig cache_memory_cfg(16, 10, 8, 128, 128, LRU_POLICY);
-
-  //CacheUnit* cache = new CacheUnit(cache_memory_cfg);
   MainMemory* memory = new MainMemory("Main Memory", main_memory_cfg);
-  CpuConnector* cpu = new CpuConnector("CPU Connector", mock_trace);
+  CpuConnector* cpu = new CpuConnector("CPU Connector");
+  cpu->set_tracer(mock_trace);
 
   // assemble
   cpu->set_next(memory);
@@ -268,8 +266,10 @@ void test_pipeline() {
   CacheUnit* L1_cache_1 = new CacheUnit("L1 Cache 1", L1_cfg);
   CacheUnit* L2_cache = new CacheUnit("L2 Cache", L2_cfg);
   MainMemory* memory = new MainMemory("Main Memory", main_memory_cfg);
-  CpuConnector* cpu0 = new CpuConnector("CPU0", mock_trace_0);
-  CpuConnector* cpu1 = new CpuConnector("CPU1", mock_trace_1);
+  CpuConnector* cpu0 = new CpuConnector("CPU0");
+  CpuConnector* cpu1 = new CpuConnector("CPU1");
+  cpu0->set_tracer(mock_trace_0);
+  cpu1->set_tracer(mock_trace_1);
 
   // assemble
   cpu0->set_next(L1_cache_0);
@@ -308,8 +308,48 @@ void test_pipeline() {
   stats_manager->display_all(stdout);
 }
 
+void test_pipeline_builder() {
+  auto loader = CfgLoaderObj::get_instance();
+  auto builder = PipeLineBuilderObj::get_instance();
+  loader->parse("../cfg/cfg.json");
+  builder->load(loader->get_nodes());
+
+  vector<u64> mock_trace_0, mock_trace_1;
+  u64 addr = 0, process_shift = 1 << 16;
+  for (int i = 0; i < 16; i++) {
+    mock_trace_0.push_back(addr);
+    mock_trace_1.push_back(addr + process_shift);
+    addr += 32;
+  }
+
+  auto connectors = builder->get_connectors();
+
+  // two cores in cfg.json
+  CpuConnector* cpu0 = connectors[0];
+  CpuConnector* cpu1 = connectors[1];
+
+  cpu0->set_tracer(mock_trace_0);
+  cpu1->set_tracer(mock_trace_1);
+
+  // inital call
+  cpu0->issue_memory_access();
+  cpu1->issue_memory_access();
+
+  EventEngine *evnet_queue = EventEngineObj::get_instance();
+  while (true) {
+    auto ret = evnet_queue->loop();
+    if (ret == 0)
+      break;
+  }
+
+    // print stats
+  auto stats_manager = MemoryStatsManagerObj::get_instance();
+  stats_manager->display_all(stdout);
+}
+
 int main() {
-  test_pipeline();
+  //test_connector();
+  //test_pipeline();
 
   srand(time(NULL));
   test_valid_addr();
@@ -318,7 +358,9 @@ int main() {
   test_lru_set();
   test_random_set();
   test_trace_loader();
-  test_cfg_loader();
+  
+  // cfg is singleton, can only load once
+  //test_cfg_loader();
 
-  //test_connector();
+  test_pipeline_builder();
 }

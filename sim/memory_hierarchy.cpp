@@ -1,5 +1,39 @@
 #include "memory_hierarchy.h"
 
+MemoryConfig::MemoryConfig(const CacheNodeCfg cfg, u32 priority_) {
+  priority = priority_;
+  latency = cfg.latency;
+
+  ways = cfg.assoc;
+  blk_size = cfg.blocksize;
+  sets = cfg.sets;
+
+  if (cfg.cr_policy == "LRU" || 
+      cfg.cr_policy == "lru" ||
+      cfg.cr_policy == "Lru") {
+    policy_type = LRU_POLICY;
+  }
+  else if (cfg.cr_policy == "Random" || 
+           cfg.cr_policy == "RANDOM" ||
+           cfg.cr_policy == "random") {
+    policy_type = RANDOM_POLICY;
+  }
+  else if (cfg.cr_policy == "lip" || 
+           cfg.cr_policy == "LIP" ||
+           cfg.cr_policy == "Lip") {
+    policy_type = LIP_POLICY;
+  }
+  else {
+    SIMLOG(SIM_ERROR, "unsupported policy type %s\n", cfg.cr_policy.c_str());
+    exit(1);
+  }
+}
+
+MemoryConfig::MemoryConfig(const MemoryNodeCfg cfg, u32 priority_) {
+  priority = priority_;
+  latency = cfg.latency;
+}
+
 MemoryEventData::MemoryEventData(const MemoryAccessInfo &info): 
     addr(info.addr), PC(info.PC) {};
 
@@ -282,6 +316,11 @@ void MemoryStatsManager::display_all(FILE *stream) {
   }
 }
 
+void CpuConnector::set_tracer(const vector<u64> &traces) {
+  _traces = traces;
+  _idx = 0;
+}
+
 bool CpuConnector::try_access_memory(const MemoryAccessInfo &info) {
   (void)info;
   return false;
@@ -302,9 +341,6 @@ void CpuConnector::on_memory_arrive(const MemoryAccessInfo &info) {
   }
 }
 
-CpuConnector::CpuConnector(const string &tag, const vector<u64> &trace): 
-      MemoryUnit(tag, 0, 0), _traces(trace), _idx(0) {}
-
 void CpuConnector::issue_memory_access() {
   u64 addr = _traces[_idx++];
   MemoryAccessInfo info(addr, 0);
@@ -318,16 +354,83 @@ void CpuConnector::issue_memory_access(const MemoryAccessInfo &info) {
   evnet_queue->register_after_now(e, 0, get_priority());
 }
 
-MemoryPipeLine::MemoryPipeLine(vector<MemoryConfig> &configs, MemoryUnit *alu) {
-  assert(configs.size() > 0);
+MemoryUnit* PipeLineBuilder::create_node(BaseNodeCfg *cfg, u8 level) {
+  auto iter = _nodes.find(cfg->name);
+  if (iter == _nodes.end()) {
+    MemoryUnit* cur_unit = NULL;
+    MemoryUnit* next_unit = NULL;
+    
+    switch (cfg->type) {
+      case CpuNode: {
+        cur_unit = new CpuConnector(cfg->name);
+        break;
+      }
 
-  // Assume we have the pipeline L1 -> L2 -> .... -> Main Memory 
-  // the leftmost have the lowest priority, the right most have 
-  // highest priority
+      case CacheNode: {
+        CacheNodeCfg* cache_cfg = (CacheNodeCfg *)cfg;
+        MemoryConfig memcfg(*cache_cfg, level);
+        cur_unit = new CacheUnit(cfg->name, memcfg);
+        break;
+      }
+
+      case MemoryNode: {
+        MemoryNodeCfg* cache_cfg = (MemoryNodeCfg*)cfg;
+        MemoryConfig memcfg(*cache_cfg, level);
+        cur_unit = new MainMemory(cfg->name, memcfg);
+        break;
+      }
+
+      default: {
+        SIMLOG(SIM_ERROR, "unsupported cfg type\n");
+        exit(1);
+      }
+    }
+
+    if (cfg->next_node != NULL) {
+      next_unit = create_node(cfg->next_node, level + 1);
+    }
+    
+    // assemble
+    if (next_unit) {
+      next_unit->add_prev(cur_unit);
+      cur_unit->set_next(next_unit);
+    }
+
+    _nodes[cfg->name] = cur_unit;
+  }
+    
+  return _nodes[cfg->name];
 }
 
-MemoryPipeLine::~MemoryPipeLine() {
-  for (u32 i = 0; i < _units.size(); i++) {
-    delete _units[i];
+void PipeLineBuilder::load(const map<string, BaseNodeCfg*> &nodes_cfg) {
+  if (_nodes_cfg.size() > 0) {
+    SIMLOG(SIM_ERROR, "try to reload pipeline builder\n");
+    exit(1);
   }
+  
+  _nodes_cfg = nodes_cfg;
+}
+
+PipeLineBuilder::~PipeLineBuilder() {
+  for (auto &entry : _nodes) {
+    delete entry.second;
+  }
+}
+
+vector<CpuConnector* > PipeLineBuilder::get_connectors() {
+  vector<CpuConnector* > cpus;
+  vector<BaseNodeCfg*> cpu_cfgs;
+  
+  for (auto &entry: _nodes_cfg) {
+    if (entry.second->type == CpuNode) {
+      cpu_cfgs.push_back(entry.second);
+    }
+  }
+
+  for (auto &cpu_cfg: cpu_cfgs) {
+    CpuConnector *conn = (CpuConnector *)create_node(cpu_cfg, 0);
+    cpus.push_back(conn);
+  }
+
+  return cpus;
 }
