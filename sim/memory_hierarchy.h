@@ -334,11 +334,12 @@ class MemoryStatsManager {
 
 class CpuConnector: public MemoryUnit {
  private:
-  vector<u64>   _traces;
-  u32           _idx;
-  unordered_set<u64> _pending_refs;
-  CPUEventData *_waiting_event_data;
-  SequentialCPU * _cpu_ptr;
+  vector<u64>             _traces;
+  u32                     _idx;
+  unordered_set<u64>      _pending_refs;
+  CPUEventData            *_waiting_event_data;
+  SequentialCPU           *_cpu_ptr;
+
  protected:
   bool try_access_memory(const MemoryAccessInfo &info);
   void on_memory_arrive(const MemoryAccessInfo &info);

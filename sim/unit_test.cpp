@@ -236,6 +236,17 @@ void test_cfg_loader() {
   }
 }
 
+void test_trace_cfg_loader() {
+  auto loader = TraceCfgLoaderObj::get_instance();
+  loader->parse("../cfg/traces.json");
+
+  auto traces = loader->get_traces();
+
+  for (auto trace: traces) {
+    printf("%s\n", trace.c_str());
+  }
+}
+
 // cpu -> memory
 void test_connector() {
   vector<u64> mock_trace;
@@ -370,15 +381,27 @@ void test_pipeline_builder_mock_trace() {
 
 
 void test_pipeline_builder_actual_trace() {
-  auto loader = CfgLoaderObj::get_instance();
+  auto cfg_loader = CfgLoaderObj::get_instance();
   auto builder = PipeLineBuilderObj::get_instance();
-  loader->parse("../cfg/cfg.json");
-  builder->load(loader->get_nodes());
+  auto trace_cfg_loader = TraceCfgLoaderObj::get_instance();
+  auto trace_loader = MultiTraceLoaderObj::get_instance();
+
+  // 1. load trace file 
+  trace_cfg_loader->parse("../cfg/traces.json");
+  auto traces = trace_cfg_loader->get_traces();
+  for (auto &trace: traces) {
+    trace_loader->adding_trace(trace);
+  }
+
+  // 2. load architecture
+  cfg_loader->parse("../cfg/cfg.json");
+  builder->load(cfg_loader->get_nodes());
   auto connectors = builder->get_connectors();
-  CpuConnector* cpu0 = connectors[0];
-  CpuConnector* cpu1 = connectors[1];
-  cpu0->start();
-  cpu1->start();
+
+  for (auto connector: connectors) {
+    connector->start();
+  }
+
   EventEngine *evnet_queue = EventEngineObj::get_instance();
   while (true) {
     auto ret = evnet_queue->loop();
@@ -407,4 +430,5 @@ int main() {
 
   // test_pipeline_builder_mock_trace();
   test_pipeline_builder_actual_trace();
+  //test_trace_cfg_loader();
 }

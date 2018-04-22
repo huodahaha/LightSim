@@ -342,7 +342,6 @@ void MemoryStatsManager::display_all(FILE *stream) {
   }
 }
 
-
 CpuConnector::CpuConnector(const string &tag, u8 id): MemoryUnit(tag, 0, 0),
                                                _waiting_event_data(nullptr) {
   _cpu_ptr = new SequentialCPU(tag, id, this);
@@ -401,10 +400,9 @@ void CpuConnector::start() {
   event_queue->register_after_now(e, 0, _priority);
 }
 
-
 OoOCpuConnector::OoOCpuConnector(const string &tag, u8 id): MemoryUnit(tag, 0, 0),
                                                             _waiting_event_data(nullptr) {
-  _cpu_ptr = new OutOfOrderCPU(tag, id, this);
+  //_cpu_ptr = new OutOfOrderCPU(tag, id, this);
 }
 
 OoOCpuConnector::~OoOCpuConnector() {
@@ -420,7 +418,6 @@ void OoOCpuConnector::on_memory_arrive(const MemoryAccessInfo &info) {
   //todo make a new kind of event that tells the cpu the memory arrive
   (void)info;
 }
-
 
 void OoOCpuConnector::issue_memory_access(const MemoryAccessInfo &info,
                                           CPUEventData *event_data) {
@@ -440,8 +437,6 @@ void OoOCpuConnector::start() {
   event_queue->register_after_now(e, 0, _priority);
 }
 
-
-
 MemoryUnit* PipeLineBuilder::create_node(BaseNodeCfg *cfg, u8 level) {
   auto iter = _nodes.find(cfg->name);
   if (iter == _nodes.end()) {
@@ -449,11 +444,14 @@ MemoryUnit* PipeLineBuilder::create_node(BaseNodeCfg *cfg, u8 level) {
     MemoryUnit* next_unit = NULL;
     switch (cfg->type) {
       case CpuNode: {
-        CpuNodeCfg * cpu_cfg = (CpuNodeCfg *) cfg;
         auto trace_loader = MultiTraceLoaderObj::get_instance();
-        trace_loader->adding_trace(cpu_cfg->trace_file);
-        u8 id = (u8) trace_loader->get_trace_num() - 1;
-        cur_unit = new CpuConnector(cfg->name, id);
+        s32 trace_id = trace_loader->assign_trace();
+        if (trace_id == -1) {
+          SIMLOG(SIM_WARNING, "not enough traces for all cpus\n");
+          break;
+        }
+        else
+        cur_unit = new CpuConnector(cfg->name, (u8)trace_id);
         break;
       }
 
@@ -477,8 +475,14 @@ MemoryUnit* PipeLineBuilder::create_node(BaseNodeCfg *cfg, u8 level) {
       }
     }
 
+    if (cur_unit == NULL) {
+      SIMLOG(SIM_WARNING, "a node is not created successfully (may due to less trace file)\n");
+      return cur_unit;
+    }
+
     if (cfg->next_node != NULL) {
       next_unit = create_node(cfg->next_node, level + 1);
+      assert(next_unit != NULL);
     }
     
     // assemble
@@ -520,7 +524,9 @@ vector<CpuConnector* > PipeLineBuilder::get_connectors() {
 
   for (auto &cpu_cfg: cpu_cfgs) {
     CpuConnector *conn = (CpuConnector *)create_node(cpu_cfg, 0);
-    cpus.push_back(conn);
+    if (conn != NULL) {
+      cpus.push_back(conn);
+    }
   }
 
   return cpus;

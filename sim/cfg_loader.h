@@ -34,9 +34,8 @@ struct NetworkCfg {
 };
 
 struct CpuNodeCfg : public BaseNodeCfg {
-  string            trace_file;
-  CpuNodeCfg(CfgNodeType type_, string name_, string trace_file_) :
-               BaseNodeCfg(type_, name_), trace_file(trace_file_){};
+  CpuNodeCfg(CfgNodeType type_, string name_) :
+               BaseNodeCfg(type_, name_){};
 };
 
 struct CacheNodeCfg: public BaseNodeCfg {
@@ -77,6 +76,22 @@ class SimCfgLoader {
   void parse(string filename);
 };
 
+class TracesCfgLoader {
+ private:
+  vector<string>   _trace_files;
+
+ public:
+  TracesCfgLoader() {};
+  ~TracesCfgLoader() {};
+
+  inline const vector<string> &get_traces() {
+    return _trace_files;
+  }
+
+  void parse(string filename);
+};
+
 typedef Singleton<SimCfgLoader> CfgLoaderObj;
+typedef Singleton<TracesCfgLoader> TraceCfgLoaderObj;
 
 #endif

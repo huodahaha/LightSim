@@ -1,0 +1,5 @@
+{
+    "traces": [
+       "../traces/ls_trace.trace.gz"
+    ]
+}

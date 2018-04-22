@@ -6,15 +6,31 @@
 
 #include <iostream>
 
-void run_simulation(string cfg, unsigned int processes) {
-  auto loader = CfgLoaderObj::get_instance();
+void run_simulation(string cfg, string trace_cfg, unsigned int processes) {
+  auto cfg_loader = CfgLoaderObj::get_instance();
   auto builder = PipeLineBuilderObj::get_instance();
-  loader->parse(cfg);
-  builder->load(loader->get_nodes());
+  auto trace_cfg_loader = TraceCfgLoaderObj::get_instance();
+  auto trace_loader = MultiTraceLoaderObj::get_instance();
+
+  // 1. load trace file 
+  trace_cfg_loader->parse(trace_cfg);
+  auto traces = trace_cfg_loader->get_traces();
+  for (auto &trace: traces) {
+    trace_loader->adding_trace(trace);
+  }
+  if (traces.size() != processes) {
+    SIMLOG(SIM_ERROR, "process number should equals to trace files\n");
+    exit(1);
+  }
+ 
+  // 2. load architecture
+  cfg_loader->parse(cfg);
+  builder->load(cfg_loader->get_nodes());
+
   auto connectors = builder->get_connectors();
   if (connectors.size() < processes) {
-    SIMLOG(SIM_ERROR, "not enough cpus in configuration\n");
-    exit(1);
+    SIMLOG(SIM_WARNING, "available cores is fewer than processes, \
+           only %d processes will be simulated\n", (int)connectors.size());
   }
   
   for (unsigned int i = 0; i < processes; i++) {
@@ -36,11 +52,14 @@ int main(int argc, char *argv[])
 {
   cmdline::parser a;
   a.add<string>("cfg", 'c', "configuration file in json format", true, "");
+  a.add<string>("trace", 't', "trace configuration file in json format", true, "");
   a.add<unsigned int>("process", 'p', "processes to simulate", true, 0, cmdline::range(1, 8));
   a.add("verbose", 'v', "verbose output");
 
   a.parse_check(argc, argv);
 
-  run_simulation(a.get<string>("cfg"), a.get<unsigned int>("process"));
+  run_simulation(a.get<string>("cfg"), 
+                 a.get<string>("trace"),
+                 a.get<unsigned int>("process"));
   return 0;
 }
