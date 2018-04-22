@@ -22,7 +22,8 @@ TraceLoader::TraceLoader(const string &filename) {
   sprintf(gzip_command, "gunzip -c %s", filename.c_str());
   _trace_file = popen(gzip_command, "r");
   if (_trace_file == nullptr) {
-    SIMLOG(SIM_ERROR, "\nUnable to read the trace file %s, exiting.\n", filename.c_str());
+    SIMLOG(SIM_ERROR, "\nUnable to read the trace file %s, exiting.\n",
+           filename.c_str());
     exit(-1);
   }
 }

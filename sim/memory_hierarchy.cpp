@@ -327,31 +327,40 @@ bool CpuConnector::try_access_memory(const MemoryAccessInfo &info) {
 }
 
 void CpuConnector::on_memory_arrive(const MemoryAccessInfo &info) {
-  // 1. mark traces
-  (void)info;
-
-  // 2. issue next call (just for test)
-  if (_idx == _traces.size()) {
-    return;
+  if (! _waiting_event_data) return;
+  auto iter = _pending_refs.find(info.addr);
+  if (iter != _pending_refs.end()) {
+    _pending_refs.erase(iter);
   }
+#ifdef DEBUG
   else {
-    u64 addr = _traces[_idx++];
-    MemoryAccessInfo info(addr, 0);
-    issue_memory_access(info);
+    assert(0);
+  }
+#endif
+  if (_pending_refs.empty()) {
+    auto evnet_queue = EventEngineObj::get_instance();
+    Event *e = new Event(InstExecution, _cpu_ptr, _waiting_event_data);
+    evnet_queue->register_after_now(e, 1, get_priority());
+    _waiting_event_data = nullptr;
   }
 }
 
 void CpuConnector::issue_memory_access() {
   u64 addr = _traces[_idx++];
   MemoryAccessInfo info(addr, 0);
-  issue_memory_access(info);
+  issue_memory_access(info, nullptr);
 }
 
-void CpuConnector::issue_memory_access(const MemoryAccessInfo &info) {
+void CpuConnector::issue_memory_access(const MemoryAccessInfo &info,
+                                       CPUEventData *event_data) {
   auto evnet_queue = EventEngineObj::get_instance();
   MemoryEventData *d = new MemoryEventData(info);
   Event *e = new Event(MemoryOnAccess, this, d);
   evnet_queue->register_after_now(e, 0, get_priority());
+  if (event_data) {
+    _waiting_event_data = event_data;
+    _pending_refs.insert(info.addr);
+  }
 }
 
 MemoryUnit* PipeLineBuilder::create_node(BaseNodeCfg *cfg, u8 level) {
@@ -359,10 +368,12 @@ MemoryUnit* PipeLineBuilder::create_node(BaseNodeCfg *cfg, u8 level) {
   if (iter == _nodes.end()) {
     MemoryUnit* cur_unit = NULL;
     MemoryUnit* next_unit = NULL;
-    
+    SequentialCPU * cpu_unit = NULL;
     switch (cfg->type) {
       case CpuNode: {
-        cur_unit = new CpuConnector(cfg->name);
+        //todo how to get the id??
+        const u8 id = 0;
+        cpu_unit = new SequentialCPU(cfg->name, id);
         break;
       }
 

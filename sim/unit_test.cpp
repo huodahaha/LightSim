@@ -247,7 +247,7 @@ void test_connector() {
 
   MemoryConfig main_memory_cfg(32, 100);
   MainMemory* memory = new MainMemory("Main Memory", main_memory_cfg);
-  CpuConnector* cpu = new CpuConnector("CPU Connector");
+  CpuConnector* cpu = new CpuConnector("OutOfOrderCPU Connector");
   cpu->set_tracer(mock_trace);
 
   // assemble

@@ -7,13 +7,14 @@
 #include "event_engine.h"
 #include "memory_helper.h"
 #include "cfg_loader.h"
+#include "ooo_cpu.h"
 
 using namespace std;
 
 struct MemoryConfig;
 struct MemoryEventData;
 struct MemoryAccessInfo;
-
+struct CPUEventData;
 class CacheBlockBase;
 class CacheBlockFactoryInterace;
 class CacheSet;
@@ -23,7 +24,7 @@ class MemoryUnit;
 class CacheUnit;
 class MainMemory;
 class MemoryStats;
-
+class SequentialCPU;
 /*********************************  Enums  ********************************/
 enum CR_POLICY {
   None,
@@ -324,17 +325,19 @@ class CpuConnector: public MemoryUnit {
   vector<u64>   _traces;
   u32           _idx;
   unordered_set<u64> _pending_refs;
+  CPUEventData *_waiting_event_data = nullptr;
+  SequentialCPU * _cpu_ptr;
  protected:
   bool try_access_memory(const MemoryAccessInfo &info);
   void on_memory_arrive(const MemoryAccessInfo &info);
 
  public:
-  CpuConnector(const string &tag): MemoryUnit(tag, 0, 0) {}
-
+  CpuConnector(const string &tag, SequentialCPU * cpu_ptr):
+      MemoryUnit(tag, 0, 0), _cpu_ptr(cpu_ptr) {}
   void set_tracer(const vector<u64> &traces);
-
   void issue_memory_access();
-  void issue_memory_access(const MemoryAccessInfo &info);
+  void issue_memory_access(const MemoryAccessInfo &info, CPUEventData *);
+//  void proc(u64 tick, EventDataBase* data, EventType type);
 };
 
 

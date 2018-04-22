@@ -41,7 +41,6 @@ struct __attribute__ ((packed)) TraceFormat {
 class TraceLoader {
  private:
   FILE *      _trace_file;
-  bool        _EOL;
   TraceLoader() {}
 
  public:
