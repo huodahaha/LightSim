@@ -316,6 +316,16 @@ void MemoryStatsManager::display_all(FILE *stream) {
   }
 }
 
+
+CpuConnector::CpuConnector(const string &tag): MemoryUnit(tag, 0, 0),
+                                               _waiting_event_data(nullptr) {
+  //todo get this id
+  const u8 id = 0;
+  _cpu_ptr = new SequentialCPU(tag, id, this);
+}
+CpuConnector::~CpuConnector() {
+  delete _cpu_ptr;
+}
 void CpuConnector::set_tracer(const vector<u64> &traces) {
   _traces = traces;
   _idx = 0;
@@ -368,12 +378,11 @@ MemoryUnit* PipeLineBuilder::create_node(BaseNodeCfg *cfg, u8 level) {
   if (iter == _nodes.end()) {
     MemoryUnit* cur_unit = NULL;
     MemoryUnit* next_unit = NULL;
-    SequentialCPU * cpu_unit = NULL;
     switch (cfg->type) {
       case CpuNode: {
         //todo how to get the id??
         const u8 id = 0;
-        cpu_unit = new SequentialCPU(cfg->name, id);
+        cur_unit = new CpuConnector(cfg->name);
         break;
       }
 

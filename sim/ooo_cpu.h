@@ -36,9 +36,7 @@ class SequentialCPU : public EventHandler {
   bool validate(EventType type);
   void proc(u64 tick, EventDataBase* data, EventType type);
  public:
-  SequentialCPU(const string &tag, u8 id);
-
-  ~SequentialCPU();
+  SequentialCPU(const string &tag, u8 id, CpuConnector*);
 };
 
 //

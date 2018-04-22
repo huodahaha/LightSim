@@ -16,15 +16,11 @@ u32 SequentialCPU::get_op_latency(const u8 opcode) const {
 }
 
 
-SequentialCPU::SequentialCPU(const string &tag, u8 id) : EventHandler(tag),
-                                                             _id(id) {
-  //todo give a new tag to it?
-  _memory_connector = new CpuConnector(tag, this);
+SequentialCPU::SequentialCPU(const string &tag, u8 id,
+                             CpuConnector *memory_connector)
+    : EventHandler(tag), _id(id), _memory_connector(memory_connector) {
 }
 
-SequentialCPU::~SequentialCPU() {
-  delete _memory_connector;
-}
 
 bool SequentialCPU::has_destination_memory(CPUEventData * event_data) const {
   for (int i = 0; i < NUM_INSTR_DESTINATIONS; i++) {
