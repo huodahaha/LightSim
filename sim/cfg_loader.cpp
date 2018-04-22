@@ -24,7 +24,10 @@ static BaseNodeCfg* parse_node(Value &node) {
   string name = node["name"].GetString();
 
   if (type == "cpu") {
-    node_cfg = new CpuNodeCfg(CpuNode, name);
+    check_key(node, "trace_file", name.c_str());
+    string trace_file = node["trace_file"].GetString();
+    node_cfg = new CpuNodeCfg(CpuNode, name, trace_file);
+
   }
 
   else if (type == "cache"){

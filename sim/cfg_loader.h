@@ -34,7 +34,9 @@ struct NetworkCfg {
 };
 
 struct CpuNodeCfg : public BaseNodeCfg {
-  CpuNodeCfg(CfgNodeType type_, string name_) : BaseNodeCfg(type_, name_){};
+  string            trace_file;
+  CpuNodeCfg(CfgNodeType type_, string name_, string trace_file_) :
+               BaseNodeCfg(type_, name_), trace_file(trace_file_){};
 };
 
 struct CacheNodeCfg: public BaseNodeCfg {

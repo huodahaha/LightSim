@@ -2,19 +2,16 @@
 
 CPUEventData::CPUEventData(const TraceFormat & t): opcode(t.opcode),
                                                    PC(t.pc) {
-  for (int i = 0; i < NUM_INSTR_DESTINATIONS; i++) {
-    destination_memory[i] = t.destination_memory[i];
-  }
-  for (int i =0; i < NUM_INSTR_SOURCES; i++) {
-    source_memory[i] = t.source_memory[i];
-  }
+  memcpy(destination_memory, t.destination_memory, sizeof(destination_memory));
+  memcpy(source_memory, t.source_memory, sizeof(source_memory));
 }
 
-u32 SequentialCPU::get_op_latency(const u8 opcode) const {
-  //todo get corresponding latency
+u32 SequentialCPU::get_op_latency(const u32 opcode) const {
+  //todo add more detialed latency
+  (void)opcode;
+  //reference http://www.agner.org/optimize/instruction_tables.pdf
   return 1;
 }
-
 
 SequentialCPU::SequentialCPU(const string &tag, u8 id,
                              CpuConnector *memory_connector)
@@ -57,8 +54,10 @@ void SequentialCPU::proc(u64 tick, EventDataBase* data, EventType type) {
       }
     } break;
     case InstExecution : {
+      assert(event_data->ready);
       if (has_destination_memory(event_data)) {
-        Event *e = new Event(WriteBack, this, event_data);
+        auto new_event_ddta = new CPUEventData(*event_data);
+        Event *e = new Event(WriteBack, this, new_event_ddta);
         event_queue->register_after_now(e, get_op_latency(event_data->opcode),
                                         _priority);
       }
@@ -71,6 +70,7 @@ void SequentialCPU::proc(u64 tick, EventDataBase* data, EventType type) {
       if(trace_loader->next_instruction(_id, _current_trace)) {
         CPUEventData *cpu_event_data = new CPUEventData(_current_trace);
         if (! has_source_memory(cpu_event_data)) {
+          cpu_event_data->ready = true;
           Event *e = new Event(InstExecution, this, cpu_event_data);
           event_queue->register_after_now(e, 1, _priority);
         } else {

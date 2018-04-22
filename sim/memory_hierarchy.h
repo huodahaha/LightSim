@@ -332,11 +332,12 @@ class CpuConnector: public MemoryUnit {
   void on_memory_arrive(const MemoryAccessInfo &info);
 
  public:
-  CpuConnector(const string &tag);
+  CpuConnector(const string &tag, u8 id);
   ~CpuConnector();
   void set_tracer(const vector<u64> &traces);
   void issue_memory_access();
   void issue_memory_access(const MemoryAccessInfo &info, CPUEventData *);
+  void start();
 //  void proc(u64 tick, EventDataBase* data, EventType type);
 };
 

@@ -317,10 +317,8 @@ void MemoryStatsManager::display_all(FILE *stream) {
 }
 
 
-CpuConnector::CpuConnector(const string &tag): MemoryUnit(tag, 0, 0),
+CpuConnector::CpuConnector(const string &tag, u8 id): MemoryUnit(tag, 0, 0),
                                                _waiting_event_data(nullptr) {
-  //todo get this id
-  const u8 id = 0;
   _cpu_ptr = new SequentialCPU(tag, id, this);
 }
 CpuConnector::~CpuConnector() {
@@ -342,15 +340,11 @@ void CpuConnector::on_memory_arrive(const MemoryAccessInfo &info) {
   if (iter != _pending_refs.end()) {
     _pending_refs.erase(iter);
   }
-#ifdef DEBUG
-  else {
-    assert(0);
-  }
-#endif
   if (_pending_refs.empty()) {
     auto evnet_queue = EventEngineObj::get_instance();
     Event *e = new Event(InstExecution, _cpu_ptr, _waiting_event_data);
     evnet_queue->register_after_now(e, 1, get_priority());
+    _waiting_event_data->ready = true;
     _waiting_event_data = nullptr;
   }
 }
@@ -373,6 +367,12 @@ void CpuConnector::issue_memory_access(const MemoryAccessInfo &info,
   }
 }
 
+void CpuConnector::start() {
+  auto event_queue = EventEngineObj::get_instance();
+  Event *e = new Event(InstFetch, _cpu_ptr, nullptr);
+  event_queue->register_after_now(e, 0, _priority);
+}
+
 MemoryUnit* PipeLineBuilder::create_node(BaseNodeCfg *cfg, u8 level) {
   auto iter = _nodes.find(cfg->name);
   if (iter == _nodes.end()) {
@@ -380,9 +380,11 @@ MemoryUnit* PipeLineBuilder::create_node(BaseNodeCfg *cfg, u8 level) {
     MemoryUnit* next_unit = NULL;
     switch (cfg->type) {
       case CpuNode: {
-        //todo how to get the id??
-        const u8 id = 0;
-        cur_unit = new CpuConnector(cfg->name);
+        CpuNodeCfg * cpu_cfg = (CpuNodeCfg *) cfg;
+        auto trace_loader = MultiTraceLoaderObj::get_instance();
+        trace_loader->adding_trace(cpu_cfg->trace_file);
+        u8 id = (u8) trace_loader->get_trace_num() - 1;
+        cur_unit = new CpuConnector(cfg->name, id);
         break;
       }
 

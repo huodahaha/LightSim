@@ -18,7 +18,9 @@ struct CPUEventData : public EventDataBase {
   u64  destination_memory[NUM_INSTR_DESTINATIONS];
   u64  source_memory[NUM_INSTR_SOURCES];
   bool ready;
+
   CPUEventData(const TraceFormat & t);
+  CPUEventData(const CPUEventData & event_data) = default;
 };
 
 class SequentialCPU : public EventHandler {
@@ -27,19 +29,19 @@ class SequentialCPU : public EventHandler {
   static const u8 _priority = 0;
   TraceFormat _current_trace;
   CpuConnector *_memory_connector;
-  //todo add a tag for CpuConnector
-
+  static const map<string, u32> latency_map;
  protected:
-  u32 get_op_latency(const u8 opcode) const;
+  u32 get_op_latency(const u32 opcode) const;
   bool has_destination_memory(CPUEventData *) const;
   bool has_source_memory(CPUEventData *) const;
   bool validate(EventType type);
   void proc(u64 tick, EventDataBase* data, EventType type);
  public:
-  SequentialCPU(const string &tag, u8 id, CpuConnector*);
+  SequentialCPU(const string &tag, u8 id, CpuConnector* _memory_connector);
+  virtual ~SequentialCPU() {};
 };
 
-//
+
 //class OutOfOrderCPU : public EventHandler {
 // private:
 //  const size_t             _id;
