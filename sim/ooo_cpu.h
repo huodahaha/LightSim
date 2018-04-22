@@ -5,7 +5,6 @@
 #include "event_engine.h"
 #include "memory_hierarchy.h"
 #include "trace_loader.h"
-
 struct MemoryAccessInfo;
 class MemoryUnit;
 class CpuConnector;
@@ -14,8 +13,10 @@ class OoOCpuConnector;
 struct CPUEventData : public EventDataBase {
   u32  opcode;
   u64  PC;
-  u64  destination_registers[NUM_INSTR_DESTINATIONS];
-  u64  source_registers[NUM_INSTR_SOURCES];
+  u8   destination_registers[NUM_INSTR_DESTINATIONS];
+  u8   source_registers[NUM_INSTR_SOURCES];
+  u64  dreg_rename[NUM_INSTR_DESTINATIONS];
+  u64  serg_rename[NUM_INSTR_SOURCES];
   u64  destination_memory[NUM_INSTR_DESTINATIONS];
   u64  source_memory[NUM_INSTR_SOURCES];
   bool ready;
@@ -54,7 +55,7 @@ class SequentialCPU : public CPU {
 class OutOfOrderCPU : public CPU {
  private:
   struct RegisterAliasEntry {
-    bool valid;
+    bool ready;
     u64 name;
   };
 
@@ -78,7 +79,7 @@ class OutOfOrderCPU : public CPU {
   TraceFormat _current_trace;
   OoOCpuConnector * _memory_connector;
 
-  RegisterAliasEntry _resgister_alias_table[128];
+  RegisterAliasEntry _resgister_alias_table[UCHAR_MAX];
 
   list<CPUEventData*> _execution_list;
   list<CPUEventData*> _issue_list;

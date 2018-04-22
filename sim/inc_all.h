@@ -11,7 +11,7 @@
 #include <list>
 #include <map>
 #include <functional>
-
+#include <climits>
 #include "util.h"
 
 #define DEBUG

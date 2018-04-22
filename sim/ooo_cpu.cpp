@@ -3,11 +3,13 @@
 CPUEventData::CPUEventData(const TraceFormat & t): opcode(t.opcode),
                                                    PC(t.pc) {
   for (u8 i = 0; i < NUM_INSTR_DESTINATIONS; i++) {
-    destination_registers[i] = t.destination_registers[i];
+    dreg_rename[i] = 0;
   }
   for (u8 i = 0; i < NUM_INSTR_SOURCES; i++) {
-    source_registers[i] = t.source_registers[i];
+    serg_rename[i] = 0;
   }
+  memcpy(destination_registers, t.destination_registers, sizeof(destination_registers));
+  memcpy(source_registers, t.source_registers, sizeof(source_registers));
   memcpy(destination_memory, t.destination_memory, sizeof(destination_memory));
   memcpy(source_memory, t.source_memory, sizeof(source_memory));
 }
@@ -112,6 +114,16 @@ bool OutOfOrderCPU::ready_to_execute(CPUEventData * event_data) const {
 
   }
 }
+
+void OutOfOrderCPU::rename_source_registers(CPUEventData * event_data) {
+  for (u8 sreg : event_data->source_registers) {
+    if (sreg == 0) continue; // zero means not used
+    // not need to rename source register if it's ready
+    if (_resgister_alias_table[sreg].ready) continue;
+    else
+  }
+}
+
 
 bool OutOfOrderCPU::validate(EventType type) {
   return ((type == WriteBack) ||
