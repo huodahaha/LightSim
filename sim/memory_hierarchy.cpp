@@ -23,6 +23,16 @@ MemoryConfig::MemoryConfig(const CacheNodeCfg cfg, u32 priority_) {
            cfg.cr_policy == "Lip") {
     policy_type = LIP_POLICY;
   }
+  else if (cfg.cr_policy == "bip" || 
+           cfg.cr_policy == "BIP" ||
+           cfg.cr_policy == "Bip") {
+    policy_type = LIP_POLICY;
+  }
+  else if (cfg.cr_policy == "dip" || 
+           cfg.cr_policy == "DIP" ||
+           cfg.cr_policy == "Dip") {
+    policy_type = LIP_POLICY;
+  }
   else {
     SIMLOG(SIM_ERROR, "unsupported policy type %s\n", cfg.cr_policy.c_str());
     exit(1);
