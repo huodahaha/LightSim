@@ -21,6 +21,7 @@ $(TEST_TARGET) : $(LIB_TARGET) $(SVR_OBJ)
 
 $(MAIN_TARGET) : $(LIB_TARGET) $(SVR_OBJ)
 	$(CPP) -o $@ light_sim.o $(LIB_TARGET)
+	mv $(MAIN_TARGET) ../bin/$(MAIN_TARGET)
 
 $(LIB_TARGET) : $(LIB_OBJ)
 	$(AR) $(LIB_TARGET) $(LIB_OBJ)
@@ -29,3 +30,4 @@ $(LIB_TARGET) : $(LIB_OBJ)
 	$(CPP) $(CPPFLAGS) -o $@ -c $<
 clean:
 	$(RM) $(SVR_OBJ) $(TEST_TARGET) $(LIB_TARGET) $(MAIN_TARGET)
+	$(RM) ../bin/$(MAIN_TARGET)
