@@ -23,6 +23,16 @@ MemoryConfig::MemoryConfig(const CacheNodeCfg cfg, u32 priority_) {
            cfg.cr_policy == "Lip") {
     policy_type = LIP_POLICY;
   }
+  else if (cfg.cr_policy == "bip" || 
+           cfg.cr_policy == "BIP" ||
+           cfg.cr_policy == "Bip") {
+    policy_type = LIP_POLICY;
+  }
+  else if (cfg.cr_policy == "dip" || 
+           cfg.cr_policy == "DIP" ||
+           cfg.cr_policy == "Dip") {
+    policy_type = LIP_POLICY;
+  }
   else {
     SIMLOG(SIM_ERROR, "unsupported policy type %s\n", cfg.cr_policy.c_str());
     exit(1);
@@ -46,6 +56,16 @@ CacheSet::CacheSet(u32 ways, u32 blk_size, u32 sets, CRPolicyInterface *policy) 
   assert(_blk_size < MAX_BLOCK_SIZE);
 }
 
+// default do nothing. when use set dueling, we need use the 
+// call back to count PSEL
+void CRPolicyInterface::on_miss(CacheSet *line, const MemoryAccessInfo &info) {
+  (void)line, void(info);
+}
+
+bool CRPolicyInterface::is_shared() {
+  return true; 
+}
+
 CacheSet::CacheSet(u32 ways, u32 blk_size, u32 sets, CRPolicyInterface *policy, const string &tag): _ways(ways), 
     _blk_size(blk_size), _sets(sets), _blocks(ways, NULL), _cr_policy(policy), _set_tag(tag) {
   assert(_cr_policy);
@@ -61,6 +81,10 @@ CacheSet::~CacheSet() {
       delete _blocks[i];
     }
   }
+}
+  
+void CacheSet::set_set_num(u32 set_num) {
+  _set_num = set_num;
 }
 
 u64 CacheSet::calulate_tag(u64 addr) {
@@ -98,6 +122,7 @@ bool CacheSet::try_access_memory(const MemoryAccessInfo &info) {
   u64 tag = calulate_tag(info.addr);
   s32 pos = find_pos_by_tag(tag);
   if (pos == -1) {
+    _cr_policy->on_miss(this, info);
     return false;
   }
   else {
@@ -197,7 +222,7 @@ CacheUnit::CacheUnit(const string &tag, const MemoryConfig &config)
   : MemoryUnit(tag, config.latency, config.priority), 
     _ways(config.ways), _blk_size(config.blk_size), _sets(config.sets){
   auto factory = PolicyFactoryObj::get_instance();
-  _cr_policy = factory->create_policy(config.policy_type);
+  _cr_policy = factory->get_policy(config);
   if (!_cr_policy) {
     SIMLOG(SIM_ERROR, "cache replacemenet policy can not be NULL");
     exit(1);
@@ -229,6 +254,7 @@ CacheUnit::CacheUnit(const string &tag, const MemoryConfig &config)
   
   for (u32 i = 0; i < _sets; i++) {
     CacheSet *line = new CacheSet(_ways, _blk_size, _sets, _cr_policy);
+    line->set_set_num(i);
     _cache_sets.push_back(line);
   }
 }

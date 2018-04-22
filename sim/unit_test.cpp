@@ -1,4 +1,3 @@
-#include "memory_helper.h"
 #include "memory_hierarchy.h"
 #include "trace_loader.h"
 #include "cfg_loader.h"
@@ -82,7 +81,8 @@ void test_lru_set() {
   bool ret;
 
   auto factory = PolicyFactoryObj::get_instance();
-  CRPolicyInterface* lru = factory->create_policy(LRU_POLICY);
+  MemoryConfig dummy_cfg(0, 0, 0, 0, 0, LRU_POLICY);
+  CRPolicyInterface* lru = factory->get_policy(dummy_cfg);
   CacheSet *line = new CacheSet(ways, blk_size, sets, lru);
 
   u64 addr = 1 << 16;
@@ -138,7 +138,8 @@ void test_random_set() {
   u32 sets = 32;
 
   auto factory = PolicyFactoryObj::get_instance();
-  CRPolicyInterface* lru = factory->create_policy(RANDOM_POLICY);
+  MemoryConfig dummy_cfg(0, 0, 0, 0, 0, RANDOM_POLICY);
+  CRPolicyInterface* lru = factory->get_policy(dummy_cfg);
   CacheSet *line = new CacheSet(ways, blk_size, sets, lru);
 
   u64 addr = 1 << 16;

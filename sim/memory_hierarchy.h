@@ -5,7 +5,6 @@
 
 #include "inc_all.h"
 #include "event_engine.h"
-#include "memory_helper.h"
 #include "cfg_loader.h"
 #include "ooo_cpu.h"
 
@@ -25,12 +24,15 @@ class CacheUnit;
 class MainMemory;
 class MemoryStats;
 class SequentialCPU;
+
 /*********************************  Enums  ********************************/
 enum CR_POLICY {
   None,
   LRU_POLICY,
   RANDOM_POLICY,
   LIP_POLICY,
+  BIP_POLICY,
+  DIP_POLICY,
   POLICY_CNT
 };
 /**************************************************************************/
@@ -126,22 +128,24 @@ class CRPolicyInterface {
   CRPolicyInterface(CacheBlockFactoryInterace *factory): _factory(factory) {};
   virtual ~CRPolicyInterface() {};
   virtual void on_hit(CacheSet *line, u32 pos, const MemoryAccessInfo &info) = 0;
+  virtual void on_miss(CacheSet *line, const MemoryAccessInfo &info);
   virtual void on_arrive(CacheSet *line, u64 tag, const MemoryAccessInfo &info) = 0;
+  // some cache replacement policy need to store private information, make the
+  // policy unsharable
+  virtual bool is_shared();
 };
 
 class PolicyFactory {
  private:
   map<CR_POLICY, CRPolicyInterface*>      _shared_policies;
   vector<CRPolicyInterface*>              _policies;
+  CRPolicyInterface* create_policy(const MemoryConfig &config);
 
  public:
   PolicyFactory() {};
   ~PolicyFactory();
 
-  CRPolicyInterface* get_policy(CR_POLICY policy_type);
-
-  // when policy use private data
-  CRPolicyInterface* create_policy(CR_POLICY policy_type);
+  CRPolicyInterface* get_policy(const MemoryConfig &config);
 };
 
 
@@ -154,6 +158,7 @@ class CacheSet {
   u32                               _ways;
   u32                               _blk_size;
   u32                               _sets;
+  u32                               _set_num = 0;   // not necessary, only used for set dueling
   vector<CacheBlockBase *>          _blocks;
   CRPolicyInterface *               _cr_policy;
   // for verbose output
@@ -180,6 +185,12 @@ class CacheSet {
   inline u32 get_block_size() {
     return _blk_size;
   }
+
+  inline u32 get_set_num() {
+    return _set_num;
+  }
+
+  void set_set_num(u32 set_num);
 
   u64 calulate_tag(u64 addr);
 
