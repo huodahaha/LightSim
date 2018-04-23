@@ -30,6 +30,10 @@ TraceLoader::TraceLoader(const string &filename) {
 
 TraceLoader::~TraceLoader() { pclose(_trace_file); }
 
+void TraceLoader::set_read_bound(s64 bound) {
+  _bound = bound;
+}
+
 size_t TraceLoader::next_instruction(TraceFormat &trace) {
   if (_bound == -1 || _count++ < _bound) {
     return fread(&trace, sizeof(TraceFormat), 1, _trace_file);
