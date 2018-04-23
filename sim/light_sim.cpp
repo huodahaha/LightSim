@@ -6,11 +6,16 @@
 
 #include <iostream>
 
-void run_simulation(string cfg, string trace_cfg, unsigned int processes) {
+void run_simulation(string cfg, string trace_cfg, unsigned int processes, long long signed inst) {
   auto cfg_loader = CfgLoaderObj::get_instance();
   auto builder = PipeLineBuilderObj::get_instance();
   auto trace_cfg_loader = TraceCfgLoaderObj::get_instance();
   auto trace_loader = MultiTraceLoaderObj::get_instance();
+
+  // 0. set instructions
+  assert(inst >= -1);
+  assert(inst < 1000000000);
+  trace_loader->set_read_bound(inst);
 
   // 1. load trace file 
   trace_cfg_loader->parse(trace_cfg);
@@ -54,6 +59,7 @@ int main(int argc, char *argv[])
   a.add<string>("cfg", 'c', "configuration file in json format", true, "");
   a.add<string>("trace", 't', "trace configuration file in json format", true, "");
   a.add<unsigned int>("process", 'p', "processes to simulate", true, 0, cmdline::range(1, 8));
+  a.add<long long signed>("inst", 'n', "simulation instructions", false, -1);
   a.add("verbose", 'v', "verbose output");
 
   a.parse_check(argc, argv);
@@ -63,7 +69,8 @@ int main(int argc, char *argv[])
 
   run_simulation(a.get<string>("cfg"), 
                  a.get<string>("trace"),
-                 a.get<unsigned int>("process"));
+                 a.get<unsigned int>("process"),
+                 a.get<long long signed>("inst"));
 
   return 0;
 }
