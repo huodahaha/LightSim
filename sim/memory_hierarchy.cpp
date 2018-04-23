@@ -398,6 +398,7 @@ void CpuConnector::start() {
   event_queue->register_after_now(e, 0, _priority);
 }
 
+/*
 OoOCpuConnector::OoOCpuConnector(const string &tag, u8 id): MemoryUnit(tag, 0, 0),
                                                             _waiting_event_data(nullptr) {
   //_cpu_ptr = new OutOfOrderCPU(tag, id, this);
@@ -434,6 +435,7 @@ void OoOCpuConnector::start() {
   Event *e = new Event(InstFetch, _cpu_ptr, nullptr);
   event_queue->register_after_now(e, 0, _priority);
 }
+ */
 
 MemoryUnit* PipeLineBuilder::create_node(BaseNodeCfg *cfg, u8 level) {
   auto iter = _nodes.find(cfg->name);

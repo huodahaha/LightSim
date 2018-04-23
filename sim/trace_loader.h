@@ -13,9 +13,9 @@ struct __attribute__ ((packed)) TraceFormat {
   // i have not idea why use or not using marco will affect the sizeof(TraceFormat)
   // this way works
   unsigned long long      pc;  // instruction pointer (program counter) value
-  unsigned int            opcode; // opcode of the instruction
-  char                    opcode_string[LONGEST_OP_CODE_STRING];
-  unsigned int            thread_id; // system thread id
+  // unsigned int            opcode; // opcode of the instruction
+  // char                    opcode_string[LONGEST_OP_CODE_STRING];
+  // unsigned int            thread_id; // system thread id
   unsigned char           is_branch;    // is this branch
   unsigned char           branch_taken; // if so, is this taken
   unsigned char           destination_registers[NUM_INSTR_DESTINATIONS]; // output registers

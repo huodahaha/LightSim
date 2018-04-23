@@ -171,9 +171,9 @@ bool prefix(const char * str, const char * prefix) {
 
 void print_trace(const TraceFormat& trace){
   printf("pc: %016llX\n", trace.pc);
-  printf("opcode: %08X :", trace.opcode);
-  printf("%s\n", trace.opcode_string);
-  printf("thread_id: %u\n", trace.thread_id);
+//  printf("opcode: %08X :", trace.opcode);
+//  printf("%s\n", trace.opcode_string);
+//  printf("thread_id: %u\n", trace.thread_id);
   printf("is_branch: %u\n", trace.is_branch);
   printf("branch_taken: %u\n", trace.branch_taken);
   printf("ndestination memory:");
@@ -196,13 +196,10 @@ void test_trace_loader() {
   while (loader.next_instruction(trace)) {
 //    if (print_count++ < 100 )print_trace(trace);
     print_trace(trace);
-    if (! (last_trace.is_branch && last_trace.branch_taken) &&
-           last_trace.thread_id == trace.thread_id) {
-      if ((trace.pc - last_trace.pc) >= 16) {
-        assert(prefix(last_trace.opcode_string, "RET") ||
-               prefix(last_trace.opcode_string, "CALL"));
+    if (! (last_trace.is_branch && last_trace.branch_taken))
+      if ((trace.pc - last_trace.pc) < 16) {
+        print_trace(trace);
       }
-    }
     last_trace = trace;
   }
 }

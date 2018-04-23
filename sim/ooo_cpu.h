@@ -52,7 +52,7 @@ class SequentialCPU : public CPU {
   virtual ~SequentialCPU() {};
 };
 
-
+/*
 class OutOfOrderCPU : public CPU {
  private:
   struct RegisterAliasEntry {
@@ -127,9 +127,6 @@ class OutOfOrderCPU : public CPU {
   OutOfOrderCPU(const string &tag, u8 id, OoOCpuConnector* _memory_connector);
   virtual ~OutOfOrderCPU() {};
 };
-
-
-
-
+*/
 
 #endif // CACHE_REPLACEMENT_OOO_CPU_H

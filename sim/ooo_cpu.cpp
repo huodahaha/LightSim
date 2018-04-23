@@ -1,7 +1,9 @@
 #include "ooo_cpu.h"
 
-CPUEventData::CPUEventData(const TraceFormat & t): opcode(t.opcode),
-                                                   PC(t.pc) {
+// CPUEventData::CPUEventData(const TraceFormat & t): opcode(t.opcode),
+CPUEventData::CPUEventData(const TraceFormat & t): PC(t.pc) {
+  //dummy opcode
+  opcode = 0;
   for (u8 i = 0; i < NUM_INSTR_DESTINATIONS; i++) {
     dreg_rename[i] = 0;
   }
@@ -16,7 +18,7 @@ CPUEventData::CPUEventData(const TraceFormat & t): opcode(t.opcode),
   memcpy(source_memory, t.source_memory, sizeof(source_memory));
 }
 
-u32 CPU::get_op_latency(const u32 opcode) const {
+u32 CPU::get_op_latency(const u32 opcode = 0) const {
   //todo add more detialed latency
   (void)opcode;
   //reference http://www.agner.org/optimize/instruction_tables.pdf
@@ -103,7 +105,7 @@ void SequentialCPU::proc(u64 tick, EventDataBase* data, EventType type) {
   }
 }
 
-
+/*
 OutOfOrderCPU::OutOfOrderCPU(const string &tag, u8 id,
                              OoOCpuConnector *memory_connector)
     : CPU(tag), _id(id), _memory_connector(memory_connector) {
@@ -339,4 +341,4 @@ void OutOfOrderCPU::handle_InstFetch(EventEngine * event_queue,
     event_queue->register_after_now(e, _pipline_latency, _priority);
   }
 }
-
+*/

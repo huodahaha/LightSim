@@ -354,7 +354,7 @@ class CpuConnector: public MemoryUnit {
 //  void proc(u64 tick, EventDataBase* data, EventType type);
 };
 
-
+/*
 class OoOCpuConnector: public MemoryUnit {
  private:
   unordered_set<u64> _pending_refs;
@@ -372,7 +372,7 @@ class OoOCpuConnector: public MemoryUnit {
   void start();
 //  void proc(u64 tick, EventDataBase* data, EventType type);
 };
-
+*/
 
 
 

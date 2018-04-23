@@ -4,7 +4,8 @@
 
 #include "trace_loader.h"
 
-TraceFormat::TraceFormat() : pc(0), opcode(0), thread_id(0),
+// TraceFormat::TraceFormat() : pc(0), opcode(0), thread_id(0),
+TraceFormat::TraceFormat() : pc(0), 
                              is_branch(0), branch_taken(0) {
   for (int i = 0; i < NUM_INSTR_DESTINATIONS; i++) {
     destination_registers[i] = 0;
