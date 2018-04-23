@@ -75,4 +75,7 @@ inline u32 len_of_binary(u64 num) {
   return ret-1;
 }
 
+void set_verbose();
+bool is_verbose();
+
 #endif

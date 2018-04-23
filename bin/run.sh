@@ -1,1 +1,1 @@
-./lightsim -c ../cfg/cfg.json -p 2 -v
+./lightsim -c ../cfg/cfg.json -t ../cfg/traces.json -p 1

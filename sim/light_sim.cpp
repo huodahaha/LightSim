@@ -58,8 +58,12 @@ int main(int argc, char *argv[])
 
   a.parse_check(argc, argv);
 
+  if (a.exist("verbose"))
+    set_verbose();
+
   run_simulation(a.get<string>("cfg"), 
                  a.get<string>("trace"),
                  a.get<unsigned int>("process"));
+
   return 0;
 }
