@@ -41,9 +41,9 @@ struct __attribute__ ((packed)) TraceFormat {
 class TraceLoader {
  private:
   FILE *      _trace_file;
+  s64         _bound = -1;
+  s64         _count = 0;
   TraceLoader() {}
-  s64 _bound = -1;
-  s64 _count = 0;
  public:
   TraceLoader(const string &filename);
   ~TraceLoader();
@@ -56,7 +56,7 @@ class MultiTraceLoader {
  private:
   vector<TraceLoader *>   _trace_loaders;
   size_t                  _cur_assigned;
-  s64 _bound = -1;
+  s64                     _bound = -1;
  public:
   MultiTraceLoader(): _trace_loaders(0), _cur_assigned(0) {};
   ~MultiTraceLoader();

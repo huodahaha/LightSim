@@ -31,7 +31,7 @@ TraceLoader::TraceLoader(const string &filename) {
 TraceLoader::~TraceLoader() { pclose(_trace_file); }
 
 size_t TraceLoader::next_instruction(TraceFormat &trace) {
-  if (_bound == -1 || _count < _bound) {
+  if (_bound == -1 || _count++ < _bound) {
     return fread(&trace, sizeof(TraceFormat), 1, _trace_file);
   }
   else return 0;
