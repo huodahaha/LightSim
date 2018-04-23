@@ -1,5 +1,6 @@
 #include "ooo_cpu.h"
 
+static u64 addr_made  = 0x90328402;
 // CPUEventData::CPUEventData(const TraceFormat & t): opcode(t.opcode),
 CPUEventData::CPUEventData(const TraceFormat & t): PC(t.pc) {
   //dummy opcode
@@ -60,8 +61,8 @@ void SequentialCPU::proc(u64 tick, EventDataBase* data, EventType type) {
     case WriteBack : {
       for (int i = 0; i < NUM_INSTR_DESTINATIONS; i++) {
         if (event_data->destination_memory[i] != 0) {
-          MemoryAccessInfo writeback_info(event_data->PC,
-                                        event_data->destination_memory[i]);
+          MemoryAccessInfo writeback_info(event_data->destination_memory[i],
+                                          event_data->PC);
           _memory_connector->issue_memory_access(writeback_info, nullptr);
         }
       }
@@ -89,8 +90,8 @@ void SequentialCPU::proc(u64 tick, EventDataBase* data, EventType type) {
         } else {
           for (int i = 0; i < NUM_INSTR_SOURCES; i++) {
             if (cpu_event_data->source_memory[i] != 0) {
-              MemoryAccessInfo read_info(cpu_event_data->PC,
-                                         cpu_event_data->source_memory[i]);
+              MemoryAccessInfo read_info(cpu_event_data->source_memory[i],
+                                         cpu_event_data->PC);
               _memory_connector->issue_memory_access(read_info, cpu_event_data);
             }
           }
