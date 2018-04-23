@@ -1,13 +1,11 @@
 {
 	"nodes": [{
 			"type": "cpu",
-			"name": "cpu-core0",
-			"trace_file": "../traces/ls_trace.trace.gz"
+			"name": "cpu-core0"
 		},
 		{
 			"type": "cpu",
-			"name": "cpu-core1",
-			"trace_file": "../traces/ps_trace.trace.gz"
+			"name": "cpu-core1"
 		},
 		{
 			"type": "cache",
