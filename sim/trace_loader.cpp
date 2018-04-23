@@ -31,7 +31,10 @@ TraceLoader::TraceLoader(const string &filename) {
 TraceLoader::~TraceLoader() { pclose(_trace_file); }
 
 size_t TraceLoader::next_instruction(TraceFormat &trace) {
-  return fread(&trace, sizeof(TraceFormat), 1, _trace_file);
+  if (_bound == -1 || _count < _bound) {
+    return fread(&trace, sizeof(TraceFormat), 1, _trace_file);
+  }
+  else return 0;
 }
 
 MultiTraceLoader::~MultiTraceLoader() {
@@ -41,7 +44,9 @@ MultiTraceLoader::~MultiTraceLoader() {
 }
 
 void MultiTraceLoader::adding_trace(const string &filename) {
-  _trace_loaders.push_back(new TraceLoader(filename));
+  auto trace_loader = new TraceLoader(filename);
+  trace_loader->set_read_bound(_bound);
+  _trace_loaders.push_back(trace_loader);
 }
 
 size_t MultiTraceLoader::get_trace_num() const {
@@ -74,4 +79,8 @@ size_t MultiTraceLoader::next_instruction(u32 trace_id, TraceFormat &trace) {
     trace.source_memory[i] = trace.source_memory[i] % range;
   }
   return ret;
+}
+
+void MultiTraceLoader::set_read_bound(s64 b) {
+  _bound = b;
 }

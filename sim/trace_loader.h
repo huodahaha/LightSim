@@ -42,11 +42,12 @@ class TraceLoader {
  private:
   FILE *      _trace_file;
   TraceLoader() {}
-
+  s64 _bound = -1;
+  s64 _count = 0;
  public:
   TraceLoader(const string &filename);
   ~TraceLoader();
-
+  void set_read_bound(s64 bound);
   size_t next_instruction(TraceFormat &trace);
 };
 
@@ -55,7 +56,7 @@ class MultiTraceLoader {
  private:
   vector<TraceLoader *>   _trace_loaders;
   size_t                  _cur_assigned;
-
+  s64 _bound = -1;
  public:
   MultiTraceLoader(): _trace_loaders(0), _cur_assigned(0) {};
   ~MultiTraceLoader();
@@ -63,6 +64,7 @@ class MultiTraceLoader {
   size_t get_trace_num() const;
   s32 assign_trace();
   size_t next_instruction(u32 trace_id, TraceFormat &trace);
+  void set_read_bound(s64);
 };
 
 

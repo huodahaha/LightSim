@@ -4,10 +4,6 @@
  *  and could serve as the starting point for developing your first PIN tool
  */
 
-/**
- * This tracer is adapted and modified from the tracer of Champsim2
- */
-
 #include "pin.H"
 #include <iostream>
 #include <fstream>
@@ -18,15 +14,8 @@
 #define NUM_INSTR_DESTINATIONS 2
 #define NUM_INSTR_SOURCES 4
 
-#define LONGEST_OP_CODE_STRING 16
-
 typedef struct trace_instr_format {
     unsigned long long int ip;  // instruction pointer (program counter) value
-
-    unsigned int opcode; // opcode of the instruction
-    char opcode_string[LONGEST_OP_CODE_STRING];
-
-    unsigned int thread_id; // system thread id
 
     unsigned char is_branch;    // is this branch
     unsigned char branch_taken; // if so, is this taken
@@ -39,7 +28,7 @@ typedef struct trace_instr_format {
 } trace_instr_format_t;
 
 /* ================================================================== */
-// Global variables
+// Global variables 
 /* ================================================================== */
 
 UINT64 instrCount = 0;
@@ -54,14 +43,14 @@ trace_instr_format_t curr_instr;
 /* ===================================================================== */
 // Command line switches
 /* ===================================================================== */
-KNOB<string> KnobOutputFile(KNOB_MODE_WRITEONCE,  "pintool", "o", "champsim.trace",
-                            "specify file name for Champsim tracer output");
+KNOB<string> KnobOutputFile(KNOB_MODE_WRITEONCE,  "pintool", "o", "champsim.trace", 
+        "specify file name for Champsim tracer output");
 
-KNOB<UINT64> KnobSkipInstructions(KNOB_MODE_WRITEONCE, "pintool", "s", "0",
-                                  "How many instructions to skip before tracing begins");
+KNOB<UINT64> KnobSkipInstructions(KNOB_MODE_WRITEONCE, "pintool", "s", "0", 
+        "How many instructions to skip before tracing begins");
 
-KNOB<UINT64> KnobTraceInstructions(KNOB_MODE_WRITEONCE, "pintool", "t", "1000000",
-                                   "How many instructions to trace");
+KNOB<UINT64> KnobTraceInstructions(KNOB_MODE_WRITEONCE, "pintool", "t", "1000000", 
+        "How many instructions to trace");
 
 /* ===================================================================== */
 // Utilities
@@ -72,10 +61,10 @@ KNOB<UINT64> KnobTraceInstructions(KNOB_MODE_WRITEONCE, "pintool", "t", "1000000
  */
 INT32 Usage()
 {
-    cerr << "This tool creates a register and memory access trace" << endl
-         << "Specify the output trace file with -o" << endl
-         << "Specify the number of instructions to skip before tracing with -s" << endl
-         << "Specify the number of instructions to trace with -t" << endl << endl;
+    cerr << "This tool creates a register and memory access trace" << endl 
+        << "Specify the output trace file with -o" << endl 
+        << "Specify the number of instructions to skip before tracing with -s" << endl
+        << "Specify the number of instructions to trace with -t" << endl << endl;
 
     cerr << KNOB_BASE::StringKnobSummary() << endl;
 
@@ -91,8 +80,7 @@ void BeginInstruction(VOID *ip, UINT32 op_code, VOID *opstring)
     instrCount++;
     //printf("[%p %u %s ", ip, opcode, (char*)opstring);
 
-
-    if(instrCount > KnobSkipInstructions.Value())
+    if(instrCount > KnobSkipInstructions.Value()) 
     {
         tracing_on = true;
 
@@ -100,7 +88,7 @@ void BeginInstruction(VOID *ip, UINT32 op_code, VOID *opstring)
             tracing_on = false;
     }
 
-    if(!tracing_on)
+    if(!tracing_on) 
         return;
 
     // reset the current instruction
@@ -108,17 +96,14 @@ void BeginInstruction(VOID *ip, UINT32 op_code, VOID *opstring)
 
     curr_instr.is_branch = 0;
     curr_instr.branch_taken = 0;
-    curr_instr.opcode = op_code;
 
-    strcpy(curr_instr.opcode_string, OPCODE_StringShort(op_code).c_str());
-
-    for(int i=0; i<NUM_INSTR_DESTINATIONS; i++)
+    for(int i=0; i<NUM_INSTR_DESTINATIONS; i++) 
     {
         curr_instr.destination_registers[i] = 0;
         curr_instr.destination_memory[i] = 0;
     }
 
-    for(int i=0; i<NUM_INSTR_SOURCES; i++)
+    for(int i=0; i<NUM_INSTR_SOURCES; i++) 
     {
         curr_instr.source_registers[i] = 0;
         curr_instr.source_memory[i] = 0;
@@ -328,9 +313,6 @@ VOID Instruction(INS ins, VOID *v)
 {
     // begin each instruction with this function
     UINT32 opcode = INS_Opcode(ins);
-
-    curr_instr.thread_id = LEVEL_PINCLIENT::PIN_GetTid();
-
     INS_InsertCall(ins, IPOINT_BEFORE, (AFUNPTR)BeginInstruction, IARG_INST_PTR, IARG_UINT32, opcode, IARG_END);
 
     // instrument branch instructions
@@ -339,45 +321,45 @@ VOID Instruction(INS ins, VOID *v)
 
     // instrument register reads
     UINT32 readRegCount = INS_MaxNumRRegs(ins);
-    for(UINT32 i=0; i<readRegCount; i++)
+    for(UINT32 i=0; i<readRegCount; i++) 
     {
         UINT32 regNum = INS_RegR(ins, i);
 
         INS_InsertCall(ins, IPOINT_BEFORE, (AFUNPTR)RegRead,
-                       IARG_UINT32, regNum, IARG_UINT32, i,
-                       IARG_END);
+                IARG_UINT32, regNum, IARG_UINT32, i,
+                IARG_END);
     }
 
     // instrument register writes
     UINT32 writeRegCount = INS_MaxNumWRegs(ins);
-    for(UINT32 i=0; i<writeRegCount; i++)
+    for(UINT32 i=0; i<writeRegCount; i++) 
     {
         UINT32 regNum = INS_RegW(ins, i);
 
         INS_InsertCall(ins, IPOINT_BEFORE, (AFUNPTR)RegWrite,
-                       IARG_UINT32, regNum, IARG_UINT32, i,
-                       IARG_END);
+                IARG_UINT32, regNum, IARG_UINT32, i,
+                IARG_END);
     }
 
     // instrument memory reads and writes
     UINT32 memOperands = INS_MemoryOperandCount(ins);
 
     // Iterate over each memory operand of the instruction.
-    for (UINT32 memOp = 0; memOp < memOperands; memOp++)
+    for (UINT32 memOp = 0; memOp < memOperands; memOp++) 
     {
-        if (INS_MemoryOperandIsRead(ins, memOp))
+        if (INS_MemoryOperandIsRead(ins, memOp)) 
         {
             UINT32 read_size = INS_MemoryReadSize(ins);
 
             INS_InsertCall(ins, IPOINT_BEFORE, (AFUNPTR)MemoryRead,
-                           IARG_MEMORYOP_EA, memOp, IARG_UINT32, memOp, IARG_UINT32, read_size,
-                           IARG_END);
+                    IARG_MEMORYOP_EA, memOp, IARG_UINT32, memOp, IARG_UINT32, read_size,
+                    IARG_END);
         }
-        if (INS_MemoryOperandIsWritten(ins, memOp))
+        if (INS_MemoryOperandIsWritten(ins, memOp)) 
         {
             INS_InsertCall(ins, IPOINT_BEFORE, (AFUNPTR)MemoryWrite,
-                           IARG_MEMORYOP_EA, memOp, IARG_UINT32, memOp,
-                           IARG_END);
+                    IARG_MEMORYOP_EA, memOp, IARG_UINT32, memOp,
+                    IARG_END);
         }
     }
 
@@ -395,7 +377,7 @@ VOID Instruction(INS ins, VOID *v)
 VOID Fini(INT32 code, VOID *v)
 {
     // close the file if it hasn't already been closed
-    if(!output_file_closed)
+    if(!output_file_closed) 
     {
         fclose(out);
         output_file_closed = true;
@@ -419,7 +401,7 @@ int main(int argc, char *argv[])
     const char* fileName = KnobOutputFile.Value().c_str();
 
     out = fopen(fileName, "ab");
-    if (!out)
+    if (!out) 
     {
         cout << "Couldn't open output trace file. Exiting." << endl;
         exit(1);

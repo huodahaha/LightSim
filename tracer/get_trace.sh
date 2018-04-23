@@ -1,23 +1,32 @@
 #!/bin/bash
 
 #Todo: handle the argument of benchmark
-
-for i in "$@"
+POSITIONAL=()
+while [[ $# -gt 0 ]]
 do
-case $i in
-    -o=*|--output*)
-    output_file="${i#*=}"
+key="$1"
+case $key in
+    -o|--output)
+    output_file=$2
+    shift
+    shift
     ;;
-    -t=*|--trace_count=*)
-    trace_count="${i#*=}"
+    -t|--trace_count)
+    trace_count=$2
+    shift
+    shift
     ;;
-    -b=*|--benchmark=*)
-    benchmark="${i#*=}"
+    *)
+    break
     ;;
-
 esac
 done
 
+echo output_file=${output_file}
+echo trace_count=${trace_count}
+echo benchmark=$@
+
 pin -ifeellucky -t /usr/local/pin_object/obj-intel64/pin_tracer.so \
-    -t ${trace_count} -o /usr/local/trace/${output_file}.trace -- ${benchmark} \
-    && gzip /usr/local/trace/${output_file}.trace
+    -t ${trace_count} -o /usr/local/trace/${output_file}.trace -- $@ \
+     && gzip /usr/local/trace/${output_file}.trace
+

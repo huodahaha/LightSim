@@ -22,15 +22,5 @@ RUN mkdir -p /usr/local/trace
 
 RUN cd /usr/local/pin_object && mkdir -p obj-intel64/ && make obj-intel64/pin_tracer.so
 
-#TODO: get benckmarks, for now just test with linux built in tools
-#RUN mkdir -p /usr/local/bench_marks && cd /usr/local/benchmarks
-
-#RUN git clone https://github.com/Multi2Sim/m2s-bench-parsec-3.0-src
-#
-#RUN cd m2s-bench-parsec-3.0-src && make
-# this is not working correctly
-#ENTRYPOINT ["pin", "-ifeellucky", "-t", "/usr/local/pin_object/obj-intel64/pin_tracer.so"]
-#CMD ["-o", "/usr/local/trace/ls.trace", "--", "ls"]
-
 ENTRYPOINT ["bash", "/usr/local/pin_object/get_trace.sh"]
 CMD []
