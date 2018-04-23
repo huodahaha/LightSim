@@ -16,10 +16,11 @@ struct CPUEventData : public EventDataBase {
   u8   destination_registers[NUM_INSTR_DESTINATIONS];
   u8   source_registers[NUM_INSTR_SOURCES];
   u64  dreg_rename[NUM_INSTR_DESTINATIONS];
-  u64  serg_rename[NUM_INSTR_SOURCES];
+  u64  sreg_rename[NUM_INSTR_SOURCES];
+  bool sreg_ready[NUM_INSTR_SOURCES];
   u64  destination_memory[NUM_INSTR_DESTINATIONS];
   u64  source_memory[NUM_INSTR_SOURCES];
-  bool ready;
+  bool memory_ready;
 
   CPUEventData(const TraceFormat & t);
   CPUEventData(const CPUEventData & event_data) = default;
@@ -105,6 +106,10 @@ class OutOfOrderCPU : public CPU {
 
   void rename_source_registers(CPUEventData *);
   void rename_destination_registers(CPUEventData *);
+  void check_ready_after_execu(CPUEventData *);
+  void set_ready_by_name(u64, CPUEventData *);
+  bool check_entry_ready(CPUEventData *) const;
+  CPUEventData * find_ready_entry();
 
   bool ready_to_execute(CPUEventData *) const;
   void handle_WriteBack(EventEngine *, CPUEventData *);

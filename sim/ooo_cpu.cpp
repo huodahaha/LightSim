@@ -6,7 +6,9 @@ CPUEventData::CPUEventData(const TraceFormat & t): opcode(t.opcode),
     dreg_rename[i] = 0;
   }
   for (u8 i = 0; i < NUM_INSTR_SOURCES; i++) {
-    serg_rename[i] = 0;
+    sreg_rename[i] = 0;
+    if (t.source_registers[i] == 0) sreg_ready[i] = true;
+    else sreg_ready[i] = false;
   }
   memcpy(destination_registers, t.destination_registers, sizeof(destination_registers));
   memcpy(source_registers, t.source_registers, sizeof(source_registers));
@@ -63,7 +65,7 @@ void SequentialCPU::proc(u64 tick, EventDataBase* data, EventType type) {
       }
     } break;
     case InstExecution : {
-      assert(event_data->ready);
+      assert(event_data->memory_ready);
       if (has_destination_memory(event_data)) {
         auto new_event_ddta = new CPUEventData(*event_data);
         Event *e = new Event(WriteBack, this, new_event_ddta);
@@ -79,7 +81,7 @@ void SequentialCPU::proc(u64 tick, EventDataBase* data, EventType type) {
       if(trace_loader->next_instruction(_id, _current_trace)) {
         CPUEventData *cpu_event_data = new CPUEventData(_current_trace);
         if (! has_source_memory(cpu_event_data)) {
-          cpu_event_data->ready = true;
+          cpu_event_data->memory_ready = true;
           Event *e = new Event(InstExecution, this, cpu_event_data);
           event_queue->register_after_now(e, 1, _priority);
         } else {
@@ -101,14 +103,14 @@ void SequentialCPU::proc(u64 tick, EventDataBase* data, EventType type) {
   }
 }
 
-/*
+
 OutOfOrderCPU::OutOfOrderCPU(const string &tag, u8 id,
                              OoOCpuConnector *memory_connector)
     : CPU(tag), _id(id), _memory_connector(memory_connector) {
 }
 
 bool OutOfOrderCPU::ready_to_execute(CPUEventData * event_data) const {
-  if (!event_data->ready) return false;
+  if (!event_data->memory_ready) return false;
   // check the source register available status
   for (u64 sreg : event_data->source_registers) {
 
@@ -116,14 +118,77 @@ bool OutOfOrderCPU::ready_to_execute(CPUEventData * event_data) const {
 }
 
 void OutOfOrderCPU::rename_source_registers(CPUEventData * event_data) {
-  for (u8 sreg : event_data->source_registers) {
+  for (u8 i = 0; i < NUM_INSTR_SOURCES; i++) {
+    u8 sreg = event_data->source_registers[i];
     if (sreg == 0) continue; // zero means not used
-    // not need to rename source register if it's ready
-    if (_resgister_alias_table[sreg].ready) continue;
-    else
+    // not need to rename source register if it's memory_ready
+    // set the private memory_ready bit
+    if (_resgister_alias_table[sreg].ready) {
+      event_data->sreg_ready[i] = true;
+    }
+    else {
+      // we need to give it a new name as we don't know when it will be memory_ready
+      // the name is also a name of destination register of previous instruction
+      event_data->sreg_rename[i] = _resgister_alias_table[sreg].name;
+    }
   }
 }
 
+void OutOfOrderCPU::rename_destination_registers(CPUEventData * event_data) {
+  for (u8 i = 0; i < NUM_INSTR_DESTINATIONS; i++) {
+    u8 dreg = event_data->destination_registers[i];
+    if (dreg == 0) continue;
+    // generate a new name for destination
+    _resgister_alias_table[dreg].name = new_register_name();
+    // clear the memory_ready bit
+    // we must be very careful about the timing of event because of this
+    _resgister_alias_table[dreg].ready = false;
+  }
+}
+
+void OutOfOrderCPU::check_ready_after_execu(CPUEventData * event_data) {
+  //this function does not take clock cycle
+  //because of the CDB
+  for (u8 i = 0; i < NUM_INSTR_DESTINATIONS; i++) {
+    u8 dreg = event_data->destination_registers[i];
+    if (dreg == 0) continue;
+    u64 name = event_data->dreg_rename[i];
+    if (_resgister_alias_table[dreg].name == name)
+      _resgister_alias_table[dreg].ready = true;
+    for (CPUEventData *waiting_event_data : _issue_list) {
+      set_ready_by_name(name, waiting_event_data);
+    }
+  }
+}
+
+void OutOfOrderCPU::set_ready_by_name(u64 name, CPUEventData *waiting_event_data) {
+  for (u8 i = 0; i < NUM_INSTR_SOURCES; i++) {
+    if (waiting_event_data->sreg_rename[i] == name) {
+      waiting_event_data->sreg_ready[i] = true;
+    }
+  }
+}
+
+bool OutOfOrderCPU::check_entry_ready(CPUEventData * event_data) const {
+  bool ret = true;
+  for (u8 i = 0; i < NUM_INSTR_SOURCES; i++) {
+    ret = ret & event_data->sreg_ready[i];
+  }
+  ret = ret & event_data->memory_ready;
+  return ret;
+}
+
+CPUEventData * OutOfOrderCPU::find_ready_entry() {
+  CPUEventData * ret = nullptr;
+  for (auto itr = _issue_list.begin(); itr != _issue_list.end(); itr++) {
+    if (check_entry_ready(*itr)) {
+      ret = *itr;
+      _issue_list.erase(itr);
+      return ret;
+    }
+  }
+  return nullptr;
+}
 
 bool OutOfOrderCPU::validate(EventType type) {
   return ((type == WriteBack) ||
@@ -178,7 +243,7 @@ void OutOfOrderCPU::handle_InstExecution(EventEngine * event_queue,
                                          CPUEventData * cpu_event_data) {
 #ifdef DEBUG
   assert(! _execution_list.empty());
-  assert(cpu_event_data->ready);
+  assert(cpu_event_data->memory_ready);
   assert(_execution_list.front() == cpu_event_data);
 #endif
   if (has_destination_memory(cpu_event_data)) {
@@ -215,14 +280,14 @@ void OutOfOrderCPU::handle_InstDispatch(EventEngine * event_queue,
     if (_dispatch_list.empty()) break;
     CPUEventData *cpu_event_data = _dispatch_list.front();
     _dispatch_list.pop_front();
-    //rename the register based on the ready and valid bit
+    //rename the register based on the memory_ready and valid bit
     rename_source_registers(cpu_event_data);
     rename_destination_registers(cpu_event_data);
 //    CPUEventData renamed_event = new CPUEventData(cpu_event_data)
     for (u64 source_memory : cpu_event_data->source_memory) {
       if (source_memory == 0) continue;
       //Todo call the OoOCpuConnector
-      _memory_connector->issue_memory_access();
+//      _memory_connector->issue_memory_access();
     }
     //Todo Make it an event
     _issue_list.push_back(cpu_event_data);
@@ -244,4 +309,3 @@ void OutOfOrderCPU::handle_InstFetch(EventEngine * event_queue,
     _dispatch_list.push_back(cpu_event_data);
   }
 }
-*/

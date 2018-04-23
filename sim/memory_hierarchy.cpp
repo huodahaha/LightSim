@@ -371,7 +371,7 @@ void CpuConnector::on_memory_arrive(const MemoryAccessInfo &info) {
     auto evnet_queue = EventEngineObj::get_instance();
     Event *e = new Event(InstExecution, _cpu_ptr, _waiting_event_data);
     evnet_queue->register_after_now(e, 1, get_priority());
-    _waiting_event_data->ready = true;
+    _waiting_event_data->memory_ready = true;
     _waiting_event_data = nullptr;
   }
 }
