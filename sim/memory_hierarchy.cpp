@@ -26,12 +26,12 @@ MemoryConfig::MemoryConfig(const CacheNodeCfg cfg, u32 priority_) {
   else if (cfg.cr_policy == "bip" || 
            cfg.cr_policy == "BIP" ||
            cfg.cr_policy == "Bip") {
-    policy_type = LIP_POLICY;
+    policy_type = BIP_POLICY;
   }
   else if (cfg.cr_policy == "dip" || 
            cfg.cr_policy == "DIP" ||
            cfg.cr_policy == "Dip") {
-    policy_type = LIP_POLICY;
+    policy_type = DIP_POLICY;
   }
   else {
     SIMLOG(SIM_ERROR, "unsupported policy type %s\n", cfg.cr_policy.c_str());
@@ -165,9 +165,6 @@ void MemoryUnit::proc(u64 tick, EventDataBase* data, EventType type) {
     if (iter != _pending_refs.end()) {
       return;
     }
-    else {
-      _pending_refs.insert(memory_data->addr);
-    }
 
 #ifdef DEBUG
   SIMLOG(SIM_INFO, "handler: %s, type: %s\ttick: %lld\taddr: %llu\n", 
@@ -184,6 +181,7 @@ void MemoryUnit::proc(u64 tick, EventDataBase* data, EventType type) {
       }
     }
     else {
+      _pending_refs.insert(memory_data->addr);
       MemoryEventData *d = new MemoryEventData(*memory_data);
       Event *e = new Event(MemoryOnAccess, _next_unit, d);      
       evnet_queue->register_after_now(e, 1, _next_unit->get_priority());
@@ -191,13 +189,8 @@ void MemoryUnit::proc(u64 tick, EventDataBase* data, EventType type) {
   }
 
   else if (type == MemoryOnArrive) {
-    auto iter = _pending_refs.find(memory_data->addr);
-    if (iter == _pending_refs.end()) {
-      return;
-    }
-    else {
-      _pending_refs.erase(memory_data->addr);
-    }
+    assert(_pending_refs.find(memory_data->addr) != _pending_refs.end());
+    _pending_refs.erase(memory_data->addr);
 
 #ifdef DEBUG
   SIMLOG(SIM_INFO, "handler: %s, type: %s\ttick: %lld\taddr: %llu\n", 

@@ -50,10 +50,12 @@ CRPolicyInterface* PolicyFactory::create_policy(const MemoryConfig &config) {
     case BIP_POLICY:
       factory = new BaseBlockFactory();
       ret = new CR_BIP_Policy(factory);
+      break;
 
     case DIP_POLICY:
       factory = new BaseBlockFactory();
       ret = new CR_DIP_Policy(factory, config.sets);
+      break;
 
     default:
       assert(0);
