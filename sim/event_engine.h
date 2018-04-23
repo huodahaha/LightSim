@@ -31,9 +31,10 @@ enum EventType {
   MemoryOnAccess,
   MemoryOnArrive,
   
-  // OutOfOrderCPU event type
-  // OutOfOrderCPU event priority is the reverse order of the pipeline
+  // CPU event type
+  // CPU event priority is the reverse order of the pipeline
   // ReorderBufferRetire,
+  MemoryOnAccessCPU,
   WriteBack,
   InstExecution,
   InstIssue,

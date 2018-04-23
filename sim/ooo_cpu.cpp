@@ -195,7 +195,8 @@ bool OutOfOrderCPU::validate(EventType type) {
       (type == InstExecution) ||
       (type == InstIssue)     ||
       (type == InstDispatch)  ||
-      (type == InstFetch));
+      (type == InstFetch)     ||
+      (type == MemoryOnAccessCPU));
 }
 
 void OutOfOrderCPU::proc(u64 tick, EventDataBase* data, EventType type) {
@@ -203,6 +204,9 @@ void OutOfOrderCPU::proc(u64 tick, EventDataBase* data, EventType type) {
   auto *cpu_event_data = (CPUEventData *) data;
   EventEngine *event_queue = EventEngineObj::get_instance();
   switch (type) {
+    case MemoryOnAccessCPU : {
+      //Todo handle MemoryOnAccessCPU
+    }  break;
     case WriteBack : {
       handle_WriteBack(event_queue, cpu_event_data);
     } break;
@@ -224,50 +228,60 @@ void OutOfOrderCPU::proc(u64 tick, EventDataBase* data, EventType type) {
 }
 
 // Issue some MemoryOnAccess event & no need to wait for accessible
-// How to ignore the on arrive
+// How to ignore the on arrive??
 void OutOfOrderCPU::handle_WriteBack(EventEngine * event_queue,
                                      CPUEventData * cpu_event_data) {
-  (void)event_queue;
+  for (auto itr = _execution_list.begin();
+       itr != _execution_list.end(); itr++) {
+    if (*itr == cpu_event_data) {
+      _execution_list.erase(itr);
+      break;
+    }
+  }
+  Event *e = new Event(InstIssue, this, nullptr);
+  event_queue->register_after_now(e, _pipline_latency, _priority);
   for (int i = 0; i < NUM_INSTR_DESTINATIONS; i++) {
     if (cpu_event_data->destination_memory[i] != 0) {
       MemoryAccessInfo acces_to_writeback(cpu_event_data->PC,
                                           cpu_event_data->destination_memory[i]);
+      //Todo
 //      _memory_connector->issue_memory_access(acces_to_writeback);
     }
   }
 }
 
 
-// Get the opcode latency and Issue Writeback event if there are destination memory
+// Get the opcode latency and Issue Writeback
 void OutOfOrderCPU::handle_InstExecution(EventEngine * event_queue,
-                                         CPUEventData * cpu_event_data) {
-#ifdef DEBUG
-  assert(! _execution_list.empty());
-  assert(cpu_event_data->memory_ready);
-  assert(_execution_list.front() == cpu_event_data);
-#endif
-  if (has_destination_memory(cpu_event_data)) {
+                                         CPUEventData * event_data) {
+  assert(event_data == nullptr);
+  for (CPUEventData * cpu_event_data : _execution_list) {
     Event *e = new Event(WriteBack, this, cpu_event_data);
     event_queue->register_after_now(e, get_op_latency(cpu_event_data->opcode),
                                     _priority);
   }
-  Event *e = new Event(InstIssue, this, nullptr);
-  event_queue->register_after_now(e, get_op_latency(cpu_event_data->opcode),
-                                  _priority);
 }
 
+// this event should be the main source of other cpu event
 void OutOfOrderCPU::handle_InstIssue(EventEngine * event_queue,
                                      CPUEventData * event_data){
   assert(event_data == nullptr);
   u8 count = 0;
+  bool issued_flag = false;
   while (count++ < _pipline_bandwidth && ! execution_list_full()) {
     // check the issue queue of instructions and add execution event
     for (auto itr = _issue_list.begin(); itr != _issue_list.end(); itr++) {
       if (ready_to_execute(*itr)) {
-        //Todo make a new event
+        issued_flag = true;
+        _execution_list.push_back(*itr);
         _issue_list.erase(itr);
+        break;
       }
     }
+  }
+  if (issued_flag) {
+    Event *e = new Event(InstExecution, this, nullptr);
+    event_queue->register_after_now(e, _pipline_latency, _priority);
   }
 }
 
@@ -276,21 +290,30 @@ void OutOfOrderCPU::handle_InstDispatch(EventEngine * event_queue,
                                         CPUEventData * event_data) {
   assert(event_data == nullptr);
   u8 count = 0;
+  bool dispathed_flag = false;
   while (count++ < _pipline_bandwidth && ! issue_list_full()) {
+    dispathed_flag = true;
     if (_dispatch_list.empty()) break;
+    // this must be in order
     CPUEventData *cpu_event_data = _dispatch_list.front();
     _dispatch_list.pop_front();
     //rename the register based on the memory_ready and valid bit
     rename_source_registers(cpu_event_data);
     rename_destination_registers(cpu_event_data);
-//    CPUEventData renamed_event = new CPUEventData(cpu_event_data)
-    for (u64 source_memory : cpu_event_data->source_memory) {
-      if (source_memory == 0) continue;
-      //Todo call the OoOCpuConnector
-//      _memory_connector->issue_memory_access();
+    if (!has_source_memory(cpu_event_data)) {
+      cpu_event_data->memory_ready = true;
+    } else {
+      for (u64 source_memory : cpu_event_data->source_memory) {
+        if (source_memory == 0) continue;
+        //Todo call the OoOCpuConnector
+        //      _memory_connector->issue_memory_access();
+      }
+      _issue_list.push_back(cpu_event_data);
     }
-    //Todo Make it an event
-    _issue_list.push_back(cpu_event_data);
+  }
+  if (dispathed_flag) {
+    Event *e = new Event(InstIssue, this, nullptr);
+    event_queue->register_after_now(e, _pipline_latency, _priority);
   }
 }
 
@@ -300,12 +323,20 @@ void OutOfOrderCPU::handle_InstFetch(EventEngine * event_queue,
   assert(event_data == nullptr);
   u8 count = 0;
   auto trace_loader = MultiTraceLoaderObj::get_instance();
-  while (count++ < _pipline_bandwidth && ! dispatch_list_full()) {
+  while (count++ < _pipline_bandwidth && !dispatch_list_full()) {
     if (!trace_loader->next_instruction(_id, _current_trace)) {
-      break;
+      return;
     }
     CPUEventData *cpu_event_data = new CPUEventData(_current_trace);
-    //Todo Make it an event
     _dispatch_list.push_back(cpu_event_data);
   }
+
+  Event *e = new Event(InstDispatch, this, nullptr);
+  event_queue->register_after_now(e, _pipline_latency, _priority);
+
+  if (!dispatch_list_full()) {
+    Event *e = new Event(InstFetch, this, nullptr);
+    event_queue->register_after_now(e, _pipline_latency, _priority);
+  }
 }
+

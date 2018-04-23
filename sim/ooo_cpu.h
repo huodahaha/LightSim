@@ -64,10 +64,10 @@ class OutOfOrderCPU : public CPU {
   // Todo: these should be configurable
   // defualt 4 way superscalar
   const size_t   _execution_list_limit = 4;
-  const size_t   _issue_list_limit = 8;
-  const size_t   _dispatch_list_limit = 8;
-  const u32  _pipline_latency = 1;
-  const u32  _pipline_bandwidth = 4;
+  const size_t   _issue_list_limit = 2 * _execution_list_limit;
+  const size_t   _dispatch_list_limit = 2 * _execution_list_limit;
+  const size_t   _pipline_bandwidth = _execution_list_limit;
+  const u32      _pipline_latency = 1;
 
   // this should be used with special care with event type
   static const u32  _zero_latency = 0;

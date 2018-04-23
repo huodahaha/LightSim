@@ -189,12 +189,13 @@ void print_trace(const TraceFormat& trace){
 
 
 void test_trace_loader() {
-  TraceLoader loader("../traces/ls_trace.trace.gz");
+  TraceLoader loader("../traces/gcc_make.trace");
   TraceFormat trace;
   TraceFormat last_trace;
   loader.next_instruction(last_trace);
   while (loader.next_instruction(trace)) {
 //    if (print_count++ < 100 )print_trace(trace);
+    print_trace(trace);
     if (! (last_trace.is_branch && last_trace.branch_taken) &&
            last_trace.thread_id == trace.thread_id) {
       if ((trace.pc - last_trace.pc) >= 16) {
@@ -424,11 +425,11 @@ int main() {
   test_event_engine();
   test_lru_set();
   // test_random_set();
-  // test_trace_loader();
+//   test_trace_loader();
   // cfg is singleton, can only load once
   // test_cfg_loader();
 
   // test_pipeline_builder_mock_trace();
   test_pipeline_builder_actual_trace();
-  //test_trace_cfg_loader();
+//  test_trace_cfg_loader();
 }
