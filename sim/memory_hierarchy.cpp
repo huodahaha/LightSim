@@ -189,7 +189,10 @@ void MemoryUnit::proc(u64 tick, EventDataBase* data, EventType type) {
   }
 
   else if (type == MemoryOnArrive) {
-    assert(_pending_refs.find(memory_data->addr) != _pending_refs.end());
+    if (_pending_refs.find(memory_data->addr) == _pending_refs.end()) {
+      // ingnore a boradcase event
+      return;
+    }
     _pending_refs.erase(memory_data->addr);
 
 #ifdef DEBUG

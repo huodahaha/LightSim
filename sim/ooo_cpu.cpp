@@ -94,7 +94,7 @@ void SequentialCPU::proc(u64 tick, EventDataBase* data, EventType type) {
           }
         }
       } else {
-        SIMLOG(SIM_INFO, "CPU %d finished processing the trace file", _id);
+        SIMLOG(SIM_INFO, "CPU %d finished processing the trace file\n", _id);
         return;
       }
     } break;

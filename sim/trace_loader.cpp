@@ -17,10 +17,9 @@ TraceFormat::TraceFormat() : pc(0), opcode(0), thread_id(0),
 }
 
 TraceLoader::TraceLoader(const string &filename) {
-//  char gzip_command[512];
-//  sprintf(gzip_command, "gunzip -c %s", filename.c_str());
-//  _trace_file = popen(gzip_command, "r");
-  _trace_file = fopen(filename.c_str(), "rb");
+  char gzip_command[512];
+  sprintf(gzip_command, "gunzip -c %s", filename.c_str());
+  _trace_file = popen(gzip_command, "r");
   if (_trace_file == nullptr) {
     SIMLOG(SIM_ERROR, "\nUnable to read the trace file %s, exiting.\n",
            filename.c_str());

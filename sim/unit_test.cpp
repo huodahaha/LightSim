@@ -189,7 +189,7 @@ void print_trace(const TraceFormat& trace){
 
 
 void test_trace_loader() {
-  TraceLoader loader("../traces/gcc_make.trace");
+  TraceLoader loader("../traces/ls_trace.trace.gz.trace");
   TraceFormat trace;
   TraceFormat last_trace;
   loader.next_instruction(last_trace);
@@ -425,7 +425,7 @@ int main() {
   test_event_engine();
   test_lru_set();
   // test_random_set();
-//   test_trace_loader();
+   test_trace_loader();
   // cfg is singleton, can only load once
   // test_cfg_loader();
 
