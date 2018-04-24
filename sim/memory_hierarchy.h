@@ -65,16 +65,18 @@ struct MemoryConfig {
 struct MemoryEventData : public EventDataBase {
   u64 addr;
   u64 PC;
+  u8  Pid;
 
-  MemoryEventData(u64 addr_, u64 PC_) : addr(addr_), PC(PC_) {};
+  MemoryEventData(u64 addr_, u64 PC_, u8 Pid_) : addr(addr_), PC(PC_), Pid(Pid_) {};
   MemoryEventData(const MemoryAccessInfo &info);
 };
 
 struct MemoryAccessInfo {
   u64 addr;
   u64 PC;
+  u8  Pid;
 
-  MemoryAccessInfo(u64 addr_, u64 PC_) : addr(addr_), PC(PC_) {};
+  MemoryAccessInfo(u64 addr_, u64 PC_, u8 Pid_) : addr(addr_), PC(PC_), Pid(Pid_) {};
   MemoryAccessInfo(const MemoryEventData &data);
 };
 
@@ -300,20 +302,29 @@ class MainMemory: public MemoryUnit {
   MainMemory(const string &tag, const MemoryConfig &config);
 };
 
+// todo: for shared cache
 class MemoryStats {
  private:
-  u64 _misses;
-  u64 _hits;
+  u64 _misses[4];
+  u64 _hits[4];
 
  public:
-  MemoryStats(): _misses(0), _hits(0) {};
+  MemoryStats();
 
   inline void increment_miss() {
-    _misses++;
+    _misses[0]++;
+  }
+
+  inline void increment_miss(u8 id) {
+    _misses[id]++;
   }
 
   inline void increment_hit() {
-    _hits++;
+    _hits[0]++;
+  }
+
+  inline void increment_hit(u8 id) {
+    _hits[id]++;
   }
 
   void display(FILE *stream, const string &tag);

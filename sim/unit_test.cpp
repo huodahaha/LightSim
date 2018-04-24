@@ -86,13 +86,13 @@ void test_lru_set() {
   CacheSet *line = new CacheSet(ways, blk_size, sets, lru);
 
   u64 addr = 1 << 16;
-  MemoryAccessInfo info(addr, 0);
+  MemoryAccessInfo info(addr, 0, 0);
   ret = line->try_access_memory(info);
   line->on_memory_arrive(info);
   assert(ret == false);
 
   for (u64 shift = 0; shift < 128; shift += 4) {
-    MemoryAccessInfo info(addr + shift, 0);
+    MemoryAccessInfo info(addr + shift, 0, 0);
     ret = line->try_access_memory(info);
     assert(ret);
   }
@@ -101,7 +101,7 @@ void test_lru_set() {
   for (u64 idx = 0; idx < ways; idx++) {
     u64 shift = idx << 40;
     addrs.push_back(addr + shift);
-    MemoryAccessInfo info(addr + shift, 0);
+    MemoryAccessInfo info(addr + shift, 0, 0);
     line->on_memory_arrive(info);
   }
 
@@ -113,7 +113,7 @@ void test_lru_set() {
 
   for (u32 cnt = 0; cnt < 20; cnt++) {
     u64 addr = addrs[(rand() % ways)];
-    MemoryAccessInfo info(addr, 0);
+    MemoryAccessInfo info(addr, 0, 0);
     auto old_blocks = line->get_all_blocks();
     ret = line->try_access_memory(info);
     assert(ret == true);
@@ -144,7 +144,7 @@ void test_random_set() {
 
   u64 addr = 1 << 16;
   for (u64 shift = 0; shift < blk_size * ways; shift += blk_size) {
-    MemoryAccessInfo info(addr + shift, 0);
+    MemoryAccessInfo info(addr + shift, 0, 0);
     line->on_memory_arrive(info);
   }
 
@@ -156,7 +156,7 @@ void test_random_set() {
 
   // random access
   for (u32 cnt = 0; cnt < 800 * ways; cnt++) {
-    MemoryAccessInfo info(rand(), 0);
+    MemoryAccessInfo info(rand(), 0, 0);
     line->on_memory_arrive(info);
   }
   //auto new_blocks = line->get_all_blocks();
@@ -413,6 +413,7 @@ void test_pipeline_builder_actual_trace() {
 
 
 int main() {
+  test_pipeline_builder_actual_trace();
   //test_connector();
   //test_pipeline();
 
@@ -422,11 +423,10 @@ int main() {
   test_event_engine();
   test_lru_set();
   // test_random_set();
-   test_trace_loader();
+   //test_trace_loader();
   // cfg is singleton, can only load once
   // test_cfg_loader();
 
   // test_pipeline_builder_mock_trace();
-  test_pipeline_builder_actual_trace();
 //  test_trace_cfg_loader();
 }

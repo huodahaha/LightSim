@@ -47,10 +47,10 @@ MemoryConfig::MemoryConfig(const MemoryNodeCfg cfg, u32 priority_) {
 }
 
 MemoryEventData::MemoryEventData(const MemoryAccessInfo &info): 
-    addr(info.addr), PC(info.PC) {};
+    addr(info.addr), PC(info.PC), Pid(info.Pid) {};
 
 MemoryAccessInfo::MemoryAccessInfo(const MemoryEventData &data):
-    addr(data.addr), PC(data.PC) {};
+    addr(data.addr), PC(data.PC), Pid(data.Pid) {};
 
 CacheSet::CacheSet(u32 ways, u32 blk_size, u32 sets, CRPolicyInterface *policy) :_ways(ways), 
     _blk_size(blk_size), _sets(sets), _blocks(ways, NULL), _cr_policy(policy) {
@@ -280,10 +280,10 @@ bool CacheUnit::try_access_memory(const MemoryAccessInfo &info) {
   auto stats_manager = MemoryStatsManagerObj::get_instance();
   auto stats = stats_manager->get_stats_handler(get_tag());
   if (ret == true) {
-    stats->increment_hit();
+    stats->increment_hit(info.Pid);
   }
   else {
-    stats->increment_miss();
+    stats->increment_miss(info.Pid);
   }
   return ret;
 }
@@ -307,15 +307,24 @@ void MainMemory::on_memory_arrive(const MemoryAccessInfo &info) {
   (void)info;
 }
 
+MemoryStats::MemoryStats() {
+  clear();
+}
+
 void MemoryStats::display(FILE *stream, const string &tag) {
   fprintf(stream, "cache tag: %s\n", tag.c_str());
-  fprintf(stream, "cache hits %llu\n", _hits);
-  fprintf(stream, "cache misses %llu\n\n", _misses);
+  for (int i = 0; i < 4; i++) {
+    fprintf(stream, "\tPid: %d\n", i);
+    fprintf(stream, "\t\tcache hits %llu\n", _hits[i]);
+    fprintf(stream, "\t\tcache misses %llu\n", _misses[i]);
+  }
+  printf("\n");
 }
 
 void MemoryStats::clear() {
-  _hits = 0;
-  _misses = 0;
+  for (int i = 0; i < 4; i++) {
+    _misses[i] = 0, _hits[i] = 0;
+  }
 }
 
 MemoryStatsManager::~MemoryStatsManager() {
@@ -376,7 +385,7 @@ void CpuConnector::on_memory_arrive(const MemoryAccessInfo &info) {
 
 void CpuConnector::issue_memory_access() {
   u64 addr = _traces[_idx++];
-  MemoryAccessInfo info(addr, 0);
+  MemoryAccessInfo info(addr, 0, 0);
   issue_memory_access(info, nullptr);
 }
 
