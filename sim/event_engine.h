@@ -41,6 +41,9 @@ enum EventType {
   InstDispatch,
   InstFetch,
 
+  // Census
+  PidCensus,
+
   // always keep this type count as the last one
   TypeCount
 };
@@ -63,6 +66,7 @@ class EventHandler {
 
  public:
   EventHandler(const string &tag) : _tag(tag) {};
+  virtual ~EventHandler() {};
   void proc_event(u64 tick, Event *e);
   inline string get_tag() {
     return _tag;

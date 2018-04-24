@@ -6,11 +6,15 @@
 
 #include <iostream>
 
-void run_simulation(string cfg, string trace_cfg, unsigned int processes, long long signed inst) {
+void run_simulation(string cfg, string trace_cfg, unsigned int processes, 
+                    int freq, long long signed inst) {
   auto cfg_loader = CfgLoaderObj::get_instance();
   auto builder = PipeLineBuilderObj::get_instance();
   auto trace_cfg_loader = TraceCfgLoaderObj::get_instance();
   auto trace_loader = MultiTraceLoaderObj::get_instance();
+  auto census_taker = CensusTakerObj::get_instance();
+
+  census_taker->init(freq, stdout);
 
   // 0. set instructions
   assert(inst >= -1);
@@ -58,6 +62,7 @@ int main(int argc, char *argv[])
   cmdline::parser a;
   a.add<string>("cfg", 'c', "configuration file in json format", true, "");
   a.add<string>("trace", 't', "trace configuration file in json format", true, "");
+  a.add<int>("freq", 'f', "shared cache probe frequency", false, 500000, cmdline::range(10000, INT_MAX));
   a.add<unsigned int>("process", 'p', "processes to simulate", true, 0, cmdline::range(1, 8));
   a.add<long long signed>("inst", 'n', "simulation instructions", false, -1);
   a.add("verbose", 'v', "verbose output");
@@ -70,6 +75,7 @@ int main(int argc, char *argv[])
   run_simulation(a.get<string>("cfg"), 
                  a.get<string>("trace"),
                  a.get<unsigned int>("process"),
+                 a.get<int>("freq"),
                  a.get<long long signed>("inst"));
 
   return 0;

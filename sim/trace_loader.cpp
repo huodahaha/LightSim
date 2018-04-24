@@ -38,7 +38,9 @@ size_t TraceLoader::next_instruction(TraceFormat &trace) {
   if (_bound == -1 || _count++ < _bound) {
     return fread(&trace, sizeof(TraceFormat), 1, _trace_file);
   }
-  else return 0;
+  else {
+    return 0;
+  }
 }
 
 MultiTraceLoader::~MultiTraceLoader() {

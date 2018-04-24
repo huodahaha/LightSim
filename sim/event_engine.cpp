@@ -13,6 +13,7 @@ static string type_name[TypeCount] = {
   "InstIssue",
   "InstDispatch",
   "InstFetch",
+  "PidCensus",
 };
 
 string event_type_to_string(EventType type) {

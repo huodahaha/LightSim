@@ -89,12 +89,13 @@ class CacheBlockBase {
   u64             _addr; 
   u32             _blk_size;       // length of the block
   u64             _tag;
+  u8              _pid;
 
   CacheBlockBase() {};
 
  public:
-  CacheBlockBase(u64 addr, u32 blk_size, u64 tag):
-      _addr(addr), _blk_size(blk_size), _tag(tag) {
+  CacheBlockBase(u64 addr, u32 blk_size, u64 tag, u8 pid):
+      _addr(addr), _blk_size(blk_size), _tag(tag), _pid(pid) {
         assert(is_power_of_two(blk_size));
       } 
 
@@ -113,6 +114,10 @@ class CacheBlockBase {
 
   inline u64 get_tag() {
     return _tag;
+  }
+
+  inline u64 get_pid() {
+    return _pid;
   }
 };
 
@@ -205,6 +210,7 @@ class CacheSet {
   void on_memory_arrive(const MemoryAccessInfo &info);
 
   void print_blocks(FILE* fs);
+  void pid_census(vector<u32> &table);
 };
 
 class MemoryInterface : public EventHandler {
@@ -287,6 +293,8 @@ class CacheUnit: public MemoryUnit {
   }
 
   u64 get_set_no(u64 addr);
+
+  void pid_census(vector<u32> &table);
 };
 
 /**
@@ -329,6 +337,25 @@ class MemoryStats {
 
   void display(FILE *stream, const string &tag);
   void clear();
+};
+
+class CensusTaker : public EventHandler {
+ private:
+  u64                   _period;
+  FILE*                 _file;
+  bool                  _shutdown;
+  vector<CacheUnit *>   _llcs;
+
+ protected:
+  void proc(u64 tick, EventDataBase* data, EventType type);
+  bool validate(EventType type);
+
+ public:
+  CensusTaker() : EventHandler("CensusTaker"){};
+  ~CensusTaker() {};
+  void init(u64 period, FILE *file);
+  void shutdown();
+  void register_llc(CacheUnit *c);
 };
 
 class MemoryStatsManager {
@@ -385,8 +412,6 @@ class OoOCpuConnector: public MemoryUnit {
 };
 */
 
-
-
 class PipeLineBuilder {
  private:
   map<string, BaseNodeCfg*>   _nodes_cfg;
@@ -402,8 +427,6 @@ class PipeLineBuilder {
   vector<CpuConnector* > get_connectors();
 };
 
-
-
 /**************************************************************************/
 
 /********************************  Singleton ******************************/
@@ -411,6 +434,7 @@ class PipeLineBuilder {
 typedef Singleton<PolicyFactory> PolicyFactoryObj;
 typedef Singleton<MemoryStatsManager> MemoryStatsManagerObj;
 typedef Singleton<PipeLineBuilder> PipeLineBuilderObj;
+typedef Singleton<CensusTaker> CensusTakerObj;
 
 /**************************************************************************/
 

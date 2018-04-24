@@ -377,7 +377,6 @@ void test_pipeline_builder_mock_trace() {
   stats_manager->display_all(stdout);
 }
 
-
 void test_pipeline_builder_actual_trace() {
   auto cfg_loader = CfgLoaderObj::get_instance();
   auto builder = PipeLineBuilderObj::get_instance();
@@ -410,7 +409,6 @@ void test_pipeline_builder_actual_trace() {
   auto stats_manager = MemoryStatsManagerObj::get_instance();
   stats_manager->display_all(stdout);
 }
-
 
 int main() {
   test_pipeline_builder_actual_trace();

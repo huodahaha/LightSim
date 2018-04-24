@@ -66,7 +66,7 @@ CRPolicyInterface* PolicyFactory::create_policy(const MemoryConfig &config) {
 }
 
 CacheBlockBase* BaseBlockFactory::create(u64 tag, u64 blk_size, const MemoryAccessInfo &info) {
-  CacheBlockBase *blk = new CacheBlockBase(info.addr, blk_size, tag);
+  CacheBlockBase *blk = new CacheBlockBase(info.addr, blk_size, tag, info.Pid);
   return blk;
 }
 

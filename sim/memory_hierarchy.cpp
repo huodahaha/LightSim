@@ -157,6 +157,14 @@ void CacheSet::print_blocks(FILE* fs) {
   fprintf(fs, "\n");
 }
 
+void CacheSet::pid_census(vector<u32> &table) {
+  for (auto block: _blocks) {
+    if (block) {
+      table[block->get_pid()]++;
+    }
+  }
+}
+
 void MemoryUnit::proc(u64 tick, EventDataBase* data, EventType type) {
   MemoryEventData *memory_data = (MemoryEventData *)data;
 
@@ -272,6 +280,12 @@ u64 CacheUnit::get_set_no(u64 addr) {
     return addr << (MACHINE_WORD_SIZE - s - b) >> (MACHINE_WORD_SIZE - s);
 }
 
+void CacheUnit::pid_census(vector<u32> &table) {
+  for (u32 i = 0; i < _sets; i++) {
+    _cache_sets[i]->pid_census(table);
+  }
+}
+
 bool CacheUnit::try_access_memory(const MemoryAccessInfo &info) {
   u64 set_no = get_set_no(info.addr);
   assert(set_no < _cache_sets.size());
@@ -325,6 +339,46 @@ void MemoryStats::clear() {
   for (int i = 0; i < 4; i++) {
     _misses[i] = 0, _hits[i] = 0;
   }
+}
+
+void CensusTaker::proc(u64 tick, EventDataBase* data, EventType type) {
+  (void)data, void(type);
+
+  for (auto llc: _llcs) {
+    vector<u32> census_table(8,0);
+    llc->pid_census(census_table);
+    fprintf(_file, "%llu - %s:\t",tick, llc->get_tag().c_str());
+    for (u32 i = 0; i < 8; i++) {
+      fprintf(_file, "%d\t", census_table[i]);
+    }
+    fprintf(_file, "\n");
+  }
+
+  if (!_shutdown) {
+    EventEngine *evnet_queue = EventEngineObj::get_instance();
+    Event *e = new Event(PidCensus, this, NULL);
+    evnet_queue->register_after_now(e, _period, 0);
+  }
+}
+
+bool CensusTaker::validate(EventType type) {
+  return (type == PidCensus);
+}
+
+void CensusTaker::init(u64 period, FILE *file) {
+  _period = period;
+  _file = file;
+  EventEngine *evnet_queue = EventEngineObj::get_instance();
+  Event *e = new Event(PidCensus, this, NULL);
+  evnet_queue->register_after_now(e, _period, 0);
+}
+
+void CensusTaker::shutdown() {
+  _shutdown = true;
+}
+
+void CensusTaker::register_llc(CacheUnit *c) {
+  _llcs.push_back(c);
 }
 
 MemoryStatsManager::~MemoryStatsManager() {
@@ -468,6 +522,10 @@ MemoryUnit* PipeLineBuilder::create_node(BaseNodeCfg *cfg, u8 level) {
         CacheNodeCfg* cache_cfg = (CacheNodeCfg *)cfg;
         MemoryConfig memcfg(*cache_cfg, level);
         cur_unit = new CacheUnit(cfg->name, memcfg);
+        if (cfg->name.find("LLC") != string::npos) {
+          auto cencus = CensusTakerObj::get_instance();
+          cencus->register_llc((CacheUnit *)cur_unit);
+        }
         break;
       }
 
