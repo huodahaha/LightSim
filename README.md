@@ -11,7 +11,7 @@ To get a trace,
 
 The format is ./docker_run.sh -o <output_trace_file_name> -t <number_of_trace_to_collect> <the_program_to_run> <the_arguments_of_the_program>
 
-For example running ./docker -t 10000 -o ls_trace ls -las
+For example running ./docker_run -t 10000 -o ls_trace ls -las
 
 ## Memory hierarchy config
 Editing the memory hierarchy of _lightsim_ should be easy. We provide a sample memory hierarchy configuration in the /cfg/cfg.json file. 
